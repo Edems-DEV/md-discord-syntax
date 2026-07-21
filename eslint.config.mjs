@@ -7,6 +7,8 @@ export default tseslint.config(
       "**/dist/**",
       "packages/obsidian/main.js",
       "packages/obsidian/styles.css",
+      "**/*.mjs",
+      "**/*.js",
     ],
   },
   eslint.configs.recommended,

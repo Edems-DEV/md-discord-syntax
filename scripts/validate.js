@@ -36,9 +36,9 @@ try {
 }
 
 // Ensure Obsidian plugin details
-if (manifest.id !== "discord-syntax") {
+if (manifest.id !== "md-discord-syntax") {
   exitWithError(
-    `manifest.json id must be "discord-syntax", got "${manifest.id}"`,
+    `manifest.json id must be "md-discord-syntax", got "${manifest.id}"`,
   );
 }
 if (manifest.name !== "Discord Syntax") {
@@ -110,9 +110,9 @@ try {
   );
 }
 
-if (obsidianPkg.name !== "discord-syntax") {
+if (obsidianPkg.name !== "md-discord-syntax") {
   exitWithError(
-    `packages/obsidian/package.json name must be "discord-syntax", got "${obsidianPkg.name}"`,
+    `packages/obsidian/package.json name must be "md-discord-syntax", got "${obsidianPkg.name}"`,
   );
 }
 

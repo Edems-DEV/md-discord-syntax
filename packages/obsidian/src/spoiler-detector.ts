@@ -82,8 +82,8 @@ export function getSpoilerAtSelection(state: EditorState): SpoilerRange | null {
   if (!selection.main.empty) return null;
   const pos = selection.main.head;
 
-  const text = state.doc.toString();
-  const spoilers = findSpoilerRanges(text);
+  const line = state.doc.lineAt(pos);
+  const spoilers = findSpoilerRanges(line.text, line.from);
   for (const s of spoilers) {
     if (pos >= s.from && pos <= s.to) {
       return s;
@@ -356,8 +356,8 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
 
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
         if (pos !== null) {
-          const text = view.state.doc.toString();
-          const spoilers = findSpoilerRanges(text);
+          const line = view.state.doc.lineAt(pos);
+          const spoilers = findSpoilerRanges(line.text, line.from);
           const spoiler = spoilers.find((s) => pos >= s.from && pos <= s.to);
 
           if (spoiler) {
@@ -414,9 +414,9 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
           if (spoilerId) {
             const fromStr = spoilerId.replace("spoiler-", "");
             const from = parseInt(fromStr, 10);
-            if (!isNaN(from)) {
-              const text = view.state.doc.toString();
-              const spoilers = findSpoilerRanges(text);
+            if (!isNaN(from) && from >= 0 && from <= view.state.doc.length) {
+              const line = view.state.doc.lineAt(from);
+              const spoilers = findSpoilerRanges(line.text, line.from);
               const spoiler = spoilers.find((s) => s.from === from);
               if (spoiler) {
                 const currentState = getSpoilerState(

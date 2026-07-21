@@ -43,9 +43,9 @@ jobs:
           body: |
             Obsidian plugin release for Discord Syntax.
 
-            Plugin ID: discord-syntax
+            Plugin ID: md-discord-syntax
 
-            Install by copying main.js, manifest.json, and styles.css into .obsidian/plugins/discord-syntax/.
+            Install by copying main.js, manifest.json, and styles.css into .obsidian/plugins/md-discord-syntax/.
           files: |
             packages/obsidian/main.js
             packages/obsidian/manifest.json

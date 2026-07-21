@@ -1,29 +1,26 @@
-function createDetachedElement<K extends keyof HTMLElementTagNameMap>(
-  doc: Document,
-  tag: K,
-): HTMLElementTagNameMap[K] {
-  const fragment = doc.createDocumentFragment();
-  if (typeof fragment.createEl === "function") {
-    return fragment.createEl(tag);
-  }
-  return doc.createElement(tag);
-}
-
 export function processSpoilers(
   element: HTMLElement,
   doc: Document = element.ownerDocument,
 ): void {
   function createSpoilerSpan(): HTMLSpanElement {
-    const spoilerSpan = createDetachedElement(doc, "span");
-    spoilerSpan.classList.add("note-flow-spoiler", "discord-syntax-spoiler");
-    spoilerSpan.setAttribute("role", "button");
-    spoilerSpan.setAttribute("tabindex", "0");
-    spoilerSpan.setAttribute("aria-expanded", "false");
-    spoilerSpan.setAttribute("aria-label", "Spoiler, click to reveal");
+    const spoilerSpan = element.createEl("span", {
+      cls: "note-flow-spoiler discord-syntax-spoiler",
+      attr: {
+        role: "button",
+        tabindex: "0",
+        "aria-expanded": "false",
+        "aria-label": "Spoiler, click to reveal",
+      },
+    });
+    if (spoilerSpan.parentNode) {
+      spoilerSpan.parentNode.removeChild(spoilerSpan);
+    }
 
-    const innerSpan = createDetachedElement(doc, "span");
-    innerSpan.setAttribute("aria-hidden", "true");
-    spoilerSpan.appendChild(innerSpan);
+    const innerSpan = spoilerSpan.createEl("span", {
+      attr: {
+        "aria-hidden": "true",
+      },
+    });
 
     function toggleSpoiler() {
       const isRevealed = spoilerSpan.classList.contains("is-revealed");
@@ -66,8 +63,12 @@ export function processSpoilers(
     if (beforeStr) {
       parent.insertBefore(doc.createTextNode(beforeStr), node);
     }
-    const marker = createDetachedElement(doc, "span");
-    marker.setAttribute("data-spoiler-marker", "true");
+    const marker = element.createEl("span", {
+      attr: { "data-spoiler-marker": "true" },
+    });
+    if (marker.parentNode) {
+      marker.parentNode.removeChild(marker);
+    }
     parent.insertBefore(marker, node);
     markers.push(marker);
 

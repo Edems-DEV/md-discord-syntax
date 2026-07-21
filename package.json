@@ -11,7 +11,7 @@
     "build": "npm run build --workspaces --if-present",
     "pretest": "npm run build -w @edems-dev/md-discord-syntax-core",
     "test": "npm run test --workspaces --if-present",
-    "lint": "eslint \"packages/**/src/**/*.ts\"",
+    "lint": "eslint .",
     "pretypecheck": "npm run build -w @edems-dev/md-discord-syntax-core",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate": "node scripts/validate.js",

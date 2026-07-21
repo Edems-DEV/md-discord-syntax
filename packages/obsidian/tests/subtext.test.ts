@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert";
 import { processSubtextParagraph } from "../src/subtext-post-processor.js";
 
-test("Subtext Reading View Post Processor", async (t) => {
+void test("Subtext Reading View Post Processor", async (t) => {
   await t.test(
     "wraps paragraph starting with -# into discord-subtext span",
     () => {

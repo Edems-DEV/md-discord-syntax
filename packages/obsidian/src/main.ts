@@ -14,10 +14,6 @@ interface ObsidianEditor {
   cm?: EditorView;
 }
 
-interface MarkdownPreviewView {
-  containerEl?: HTMLElement;
-}
-
 export default class DiscordSyntaxPlugin extends Plugin {
   onload() {
     // ── Reading View Post Processor ──────────────────────────────────────
@@ -42,9 +38,7 @@ export default class DiscordSyntaxPlugin extends Plugin {
 
         const mode = activeView.getMode();
         if (mode === "preview") {
-          const preview =
-            activeView.previewMode as unknown as MarkdownPreviewView;
-          const container = preview?.containerEl;
+          const container = activeView.previewMode?.containerEl;
           if (!container) return;
           const spoilers = container.querySelectorAll(
             ".note-flow-spoiler, .discord-syntax-spoiler",
@@ -76,7 +70,7 @@ export default class DiscordSyntaxPlugin extends Plugin {
             }
           }
         } else if (mode === "source") {
-          const editor = activeView.editor as unknown as ObsidianEditor;
+          const editor = activeView.editor as ObsidianEditor;
           const cm = editor.cm;
           if (
             !cm ||

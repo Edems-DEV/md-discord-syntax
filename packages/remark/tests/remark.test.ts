@@ -12,7 +12,7 @@ interface TestNode {
   data?: Record<string, unknown>;
 }
 
-test("Remark Discord Syntax Plugin", async (t) => {
+void test("Remark Discord Syntax Plugin", async (t) => {
   const processor = remark().use(remarkMdDiscordSyntax);
 
   await t.test("transforms discord-style spoilers (plain)", async () => {

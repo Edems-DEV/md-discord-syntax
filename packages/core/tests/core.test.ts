@@ -2,14 +2,12 @@ import test from "node:test";
 import assert from "node:assert";
 import {
   findSpoilerRanges,
-  findCodeRanges,
-  isPosInCode,
   isSubtextLine,
   stripSubtextPrefix,
   hasSubtextMarker,
 } from "../src/index.js";
 
-test("Core Spoiler & Subtext Syntax Rules", async (t) => {
+void test("Core Spoiler & Subtext Syntax Rules", async (t) => {
   await t.test("detects basic spoiler range", () => {
     const text = "Hello ||secret|| world";
     const spoilers = findSpoilerRanges(text);

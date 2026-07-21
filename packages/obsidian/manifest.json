@@ -1,7 +1,7 @@
 {
-  "id": "discord-syntax",
+  "id": "md-discord-syntax",
   "name": "Discord Syntax",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "minAppVersion": "0.15.0",
   "description": "Discord-style `||spoiler||` and `-# subtext` markdown formatting extension.",
   "author": "Edems-DEV",

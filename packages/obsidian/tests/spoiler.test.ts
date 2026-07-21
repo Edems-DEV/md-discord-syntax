@@ -11,7 +11,7 @@ import {
   findSpoilerRanges,
 } from "../src/spoiler-detector.js";
 
-test("Spoiler Detection & Live Preview", async (t) => {
+void test("Spoiler Detection & Live Preview", async (t) => {
   await t.test("detects basic spoiler range", () => {
     const text = "Hello ||secret|| world";
     const ranges = findSpoilerRanges(text);
@@ -102,7 +102,7 @@ test("Spoiler Detection & Live Preview", async (t) => {
         items.push({
           from: iter.from,
           to: iter.to,
-          value: iter.value as unknown as DecoItem["value"],
+          value: iter.value,
         });
         iter.next();
       }
