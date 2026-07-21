@@ -1,0 +1,40 @@
+name: Publish npm Packages
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run build
+      - name: Publish @md-discord-syntax/core
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            npm publish --access public --workspace=packages/core
+          else
+            echo "NPM_TOKEN not set; skipping publish (dry-run)."
+            npm publish --dry-run --workspace=packages/core
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish remark-md-discord-syntax
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            npm publish --access public --workspace=packages/remark
+          else
+            echo "NPM_TOKEN not set; skipping publish (dry-run)."
+            npm publish --dry-run --workspace=packages/remark
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

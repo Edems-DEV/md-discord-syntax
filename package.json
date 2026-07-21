@@ -1,30 +1,22 @@
 {
-  "name": "obsidian-discord-syntax",
+  "name": "md-discord-syntax-monorepo",
   "version": "1.0.0",
-  "description": "Discord-style spoiler and subtext formatting for Obsidian",
-  "main": "main.js",
-  "scripts": {
-    "build": "node esbuild.config.mjs",
-    "dev": "node esbuild.config.mjs --watch",
-    "test": "npx tsx --test src/*.test.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "keywords": [
-    "obsidian",
-    "obsidian-plugin",
-    "discord",
-    "spoiler",
-    "subtext"
+  "private": true,
+  "description": "Monorepo for Discord syntax extensions (core, remark, obsidian)",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
   ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css}\""
+  },
   "author": "Edems-DEV",
   "license": "GPL-3.0",
   "devDependencies": {
-    "@codemirror/language": "^6.10.0",
-    "@codemirror/state": "^6.4.0",
-    "@codemirror/view": "^6.23.0",
-    "@types/node": "^20.11.0",
-    "esbuild": "^0.21.5",
-    "obsidian": "^1.5.0",
+    "prettier": "^3.3.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4"
   }

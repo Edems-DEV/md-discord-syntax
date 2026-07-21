@@ -1,73 +1,91 @@
-# Discord Syntax for Obsidian
+# Discord Syntax (`md-discord-syntax`)
 
-A native Obsidian plugin that brings Discord-style Markdown formatting to your notes in both **Reading View** and **Live Preview**.
+Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subtext`) to Obsidian, MDX / Next.js, and platform-independent parsers.
 
-## Features
+> **Note**: npm packages (`@md-discord-syntax/core` and `remark-md-discord-syntax`) are currently local monorepo packages and not yet published to npm.
 
-- **Spoiler Syntax (`||spoiler text||`)**: Mask confidential or secret content behind a dark spoiler block. Click or press `Enter`/`Space` to reveal, click again to edit.
+---
+
+## Workspace Packages
+
+| Package | npm Name | Description |
+| ------- | -------- | ----------- |
+| [`packages/core`](packages/core) | `@md-discord-syntax/core` | Platform-independent spoiler & subtext rules parser (zero dependencies). |
+| [`packages/remark`](packages/remark) | `remark-md-discord-syntax` | Remark plugin transforming `||spoiler||` and `-# subtext` for MDX. |
+| [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `md-discord-syntax`). |
+| [`examples/next-mdx`](examples/next-mdx) | — | Minimal Next.js MDX usage example consuming `remark-md-discord-syntax`. |
+| [`packages/quartz`](packages/quartz) | `@md-discord-syntax/quartz` | Reserved for future Quartz static site generator integration. |
+
+---
+
+## Features & Syntax
+
+- **Spoiler Syntax (`||spoiler text||`)**: Mask confidential or secret content behind a dark spoiler block.
 - **Subtext Syntax (`-# subtext`)**: Render small, muted secondary text lines at physical line starts.
-- **Toggle Spoilers Command**: Trigger `Discord Syntax: Toggle all spoilers in active note` to expand or conceal all spoilers in the current note at once.
-
-## Usage & Examples
-
-### 1. Spoilers
-
-Wrap any text in double vertical bars `||`:
-
-```markdown
-Here is a normal sentence with a ||secret spoiler|| inside it.
-```
-
-- **Reading View**: Renders as a spoiler block. Click to reveal.
-- **Live Preview**: Automatically hides `||` delimiters and masks text when the cursor is off the spoiler. Clicking or navigating into the spoiler reveals its content and enables editing.
-
-### 2. Subtext Lines
-
-Start any line with `-# ` at column 0:
-
-```markdown
-This is normal paragraph text.
--# This line will be rendered as small, muted subtext.
-```
-
-- **Reading View**: Renders as smaller, muted subtext without modifying your source markdown file.
-- **Live Preview**: When your cursor is on another line, `-# ` is hidden and the line is styled as subtext. When you move your cursor onto the subtext line, the `-# ` prefix appears faintly so you can edit it naturally.
 
 ---
 
-## Installation
+## Installation & Usage
 
-### Manual Installation
+### 1. Core Parser (`@md-discord-syntax/core`)
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the latest GitHub Release.
-2. Create a folder named `discord-syntax` inside your vault's `.obsidian/plugins/` directory:
-   `<vault>/.obsidian/plugins/discord-syntax/`
-3. Copy `main.js`, `manifest.json`, and `styles.css` into that folder.
-4. Reload Obsidian and enable **Discord Syntax** in **Settings > Community plugins**.
+```ts
+import { findSpoilerRanges, isSubtextLine, stripSubtextPrefix } from '@md-discord-syntax/core'
+
+const text = "Hello ||secret|| world"
+const spoilers = findSpoilerRanges(text)
+// [{ from: 6, to: 16, contentFrom: 8, contentTo: 14 }]
+```
+
+### 2. Remark Plugin (`remark-md-discord-syntax`)
+
+In Next.js MDX config (`next.config.mjs`):
+
+```js
+import createMDX from '@next/mdx'
+import { remarkMdDiscordSyntax } from 'remark-md-discord-syntax'
+
+const withMDX = createMDX({
+  options: {
+    remarkPlugins: [remarkMdDiscordSyntax]
+  }
+})
+
+export default withMDX({
+  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx']
+})
+```
+
+### 3. Obsidian Plugin (`packages/obsidian`)
+
+1. Build the release assets in `packages/obsidian`:
+   ```bash
+   npm run build --workspace=packages/obsidian
+   ```
+2. Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/md-discord-syntax/`.
+3. Enable **Discord Syntax** in Obsidian Settings.
 
 ---
 
-## Development
+## Monorepo Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Run tests
+# Run tests across all workspace packages
 npm run test
 
-# Type check
+# Typecheck all packages
 npm run typecheck
 
-# Build release assets (main.js and styles.css)
+# Build all packages & release assets
 npm run build
-
-# Development watch mode
-npm run dev
 ```
 
 ---
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
+This project is licensed under the [GNU General Public License v3.0](LICENSE).  
+Author: **Edems-DEV**

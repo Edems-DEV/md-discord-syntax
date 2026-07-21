@@ -1,0 +1,30 @@
+{
+  "name": "@md-discord-syntax/core",
+  "version": "1.0.0",
+  "description": "Platform-independent Discord spoiler and subtext syntax detection",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "keywords": [
+    "markdown",
+    "discord",
+    "spoiler",
+    "subtext",
+    "parser"
+  ],
+  "author": "Edems-DEV",
+  "license": "GPL-3.0"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "md-discord-syntax-obsidian",
+  "version": "1.0.0",
+  "description": "Discord Syntax Obsidian plugin adapter",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch",
+    "test": "npx tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Edems-DEV",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@md-discord-syntax/core": "file:../core"
+  },
+  "devDependencies": {
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.23.0",
+    "@types/node": "^20.11.0",
+    "esbuild": "^0.21.5",
+    "obsidian": "^1.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}
