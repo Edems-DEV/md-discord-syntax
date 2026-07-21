@@ -1,4 +1,4 @@
-# @md-discord-syntax/quartz (Reserved)
+# @edems-dev/md-discord-syntax-quartz (Reserved)
 
 Quartz integration adapter for `md-discord-syntax`.
 

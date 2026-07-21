@@ -13,7 +13,7 @@
   "author": "Edems-DEV",
   "license": "GPL-3.0",
   "dependencies": {
-    "@md-discord-syntax/core": "^1.0.0"
+    "@edems-dev/md-discord-syntax-core": "^1.0.0"
   },
   "devDependencies": {
     "@codemirror/language": "^6.10.0",

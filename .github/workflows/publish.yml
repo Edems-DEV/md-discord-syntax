@@ -19,7 +19,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm run build
-      - name: Publish @md-discord-syntax/core
+      - name: Publish @edems-dev/md-discord-syntax-core
         run: |
           if [ -n "$NPM_TOKEN" ]; then
             npm publish --access public --workspace=packages/core

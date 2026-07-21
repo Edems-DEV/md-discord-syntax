@@ -1,5 +1,5 @@
 {
-  "name": "@md-discord-syntax/quartz",
+  "name": "@edems-dev/md-discord-syntax-quartz",
   "version": "1.0.0",
   "private": true,
   "description": "Reserved package for future Quartz static site generator integration",

@@ -7,10 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "prebuild": "npm run build -w @md-discord-syntax/core",
+    "prebuild": "npm run build -w @edems-dev/md-discord-syntax-core",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "pretypecheck": "npm run build -w @md-discord-syntax/core",
+    "pretypecheck": "npm run build -w @edems-dev/md-discord-syntax-core",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate": "node scripts/validate.js",
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css}\""

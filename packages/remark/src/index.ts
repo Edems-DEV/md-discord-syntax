@@ -3,7 +3,7 @@ import {
   hasSubtextMarker,
   isSubtextLine,
   stripSubtextPrefix,
-} from '@md-discord-syntax/core'
+} from '@edems-dev/md-discord-syntax-core'
 
 export interface UnistNode {
   type: string

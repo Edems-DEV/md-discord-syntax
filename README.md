@@ -2,7 +2,7 @@
 
 Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subtext`) to Obsidian, MDX / Next.js, and platform-independent parsers.
 
-> **Note**: npm packages (`@md-discord-syntax/core` and `remark-md-discord-syntax`) are currently local monorepo packages and not yet published to npm.
+> **Note**: npm packages (`@edems-dev/md-discord-syntax-core` and `remark-md-discord-syntax`) are currently local monorepo packages and not yet published to npm.
 
 ---
 
@@ -10,10 +10,10 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 
 | Package | npm Name | Description |
 | ------- | -------- | ----------- |
-| [`packages/core`](packages/core) | `@md-discord-syntax/core` | Platform-independent spoiler & subtext rules parser (zero dependencies). |
+| [`packages/core`](packages/core) | `@edems-dev/md-discord-syntax-core` | Platform-independent spoiler & subtext rules parser (zero dependencies). |
 | [`packages/remark`](packages/remark) | `remark-md-discord-syntax` | Remark plugin transforming `||spoiler||` and `-# subtext` for MDX. |
 | [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `md-discord-syntax`). |
-| [`packages/quartz`](packages/quartz) | `@md-discord-syntax/quartz` | Reserved for future Quartz static site generator integration. |
+| [`packages/quartz`](packages/quartz) | `@edems-dev/md-discord-syntax-quartz` | Reserved for future Quartz static site generator integration. |
 
 ---
 
@@ -26,10 +26,10 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 
 ## Installation & Usage
 
-### 1. Core Parser (`@md-discord-syntax/core`)
+### 1. Core Parser (`@edems-dev/md-discord-syntax-core`)
 
 ```ts
-import { findSpoilerRanges, isSubtextLine, stripSubtextPrefix } from '@md-discord-syntax/core'
+import { findSpoilerRanges, isSubtextLine, stripSubtextPrefix } from '@edems-dev/md-discord-syntax-core'
 
 const text = "Hello ||secret|| world"
 const spoilers = findSpoilerRanges(text)

@@ -4,7 +4,7 @@ import {
   isSubtextLine,
   stripSubtextPrefix,
   hasSubtextMarker,
-} from '@md-discord-syntax/core'
+} from '@edems-dev/md-discord-syntax-core'
 
 const SUBTEXT_CLASS = 'discord-subtext'
 

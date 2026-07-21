@@ -1,7 +1,7 @@
 import { ViewPlugin, ViewUpdate, EditorView, Decoration, DecorationSet } from '@codemirror/view'
 import { RangeSetBuilder, EditorState, StateField, StateEffect } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
-import { findSpoilerRanges, SpoilerRange } from '@md-discord-syntax/core'
+import { findSpoilerRanges, SpoilerRange } from '@edems-dev/md-discord-syntax-core'
 
 export { findSpoilerRanges, SpoilerRange }
 

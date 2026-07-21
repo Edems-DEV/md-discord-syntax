@@ -1,6 +1,6 @@
 import { ViewPlugin, Decoration, EditorView, ViewUpdate, DecorationSet } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
-import { SUBTEXT_MARKER, SUBTEXT_MARKER_LEN } from '@md-discord-syntax/core'
+import { SUBTEXT_MARKER, SUBTEXT_MARKER_LEN } from '@edems-dev/md-discord-syntax-core'
 
 const subtextLineMark = Decoration.mark({ class: 'discord-subtext' })
 

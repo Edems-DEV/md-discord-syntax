@@ -1,5 +1,5 @@
 {
-  "name": "@md-discord-syntax/core",
+  "name": "@edems-dev/md-discord-syntax-core",
   "version": "1.0.0",
   "description": "Platform-independent Discord spoiler and subtext syntax detection",
   "type": "module",
@@ -13,8 +13,12 @@
       "default": "./dist/index.js"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts"
   },

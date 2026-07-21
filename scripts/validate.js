@@ -78,7 +78,19 @@ if (!fs.existsSync(stylesSrcPath)) {
   exitWithError(`packages/obsidian/src/styles.css is missing!`);
 }
 
-// 5. Check package metadata dependencies
+// 5. Check package metadata dependencies & publish tarball configuration
+const corePkgPath = path.join(rootDir, 'packages', 'core', 'package.json');
+let corePkg;
+try {
+  corePkg = JSON.parse(fs.readFileSync(corePkgPath, 'utf8'));
+} catch (e) {
+  exitWithError(`Failed to read/parse packages/core/package.json: ${e.message}`);
+}
+
+if (corePkg.name !== '@edems-dev/md-discord-syntax-core') {
+  exitWithError(`packages/core/package.json name must be "@edems-dev/md-discord-syntax-core", got "${corePkg.name}"`);
+}
+
 const remarkPkgPath = path.join(rootDir, 'packages', 'remark', 'package.json');
 let remarkPkg;
 try {
@@ -87,17 +99,49 @@ try {
   exitWithError(`Failed to read/parse packages/remark/package.json: ${e.message}`);
 }
 
-const remarkCoreDep = remarkPkg.dependencies?.['@md-discord-syntax/core'];
-if (!remarkCoreDep) {
-  exitWithError(`remark-md-discord-syntax is missing dependency on "@md-discord-syntax/core"`);
-}
-if (remarkCoreDep.startsWith('file:')) {
-  exitWithError(`remark-md-discord-syntax depends on local file spec for "@md-discord-syntax/core" ("${remarkCoreDep}"). Must use normal semver.`);
+if (remarkPkg.dependencies?.['@md-discord-syntax/core']) {
+  exitWithError(`remark-md-discord-syntax still has reference to old scope "@md-discord-syntax/core"`);
 }
 
-const obsidianCoreDep = obsidianPkg.dependencies?.['@md-discord-syntax/core'];
+const remarkCoreDep = remarkPkg.dependencies?.['@edems-dev/md-discord-syntax-core'];
+if (!remarkCoreDep) {
+  exitWithError(`remark-md-discord-syntax is missing dependency on "@edems-dev/md-discord-syntax-core"`);
+}
+if (remarkCoreDep.startsWith('file:')) {
+  exitWithError(`remark-md-discord-syntax depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${remarkCoreDep}"). Must use normal semver.`);
+}
+
+if (obsidianPkg.dependencies?.['@md-discord-syntax/core']) {
+  exitWithError(`md-discord-syntax-obsidian still has reference to old scope "@md-discord-syntax/core"`);
+}
+
+const obsidianCoreDep = obsidianPkg.dependencies?.['@edems-dev/md-discord-syntax-core'];
 if (obsidianCoreDep && obsidianCoreDep.startsWith('file:')) {
-  exitWithError(`md-discord-syntax-obsidian depends on local file spec for "@md-discord-syntax/core" ("${obsidianCoreDep}"). Must use normal semver.`);
+  exitWithError(`md-discord-syntax-obsidian depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${obsidianCoreDep}"). Must use normal semver.`);
+}
+
+// Ensure published npm packages (core & remark) configure tarballs & safe prepack
+for (const pkgName of ['core', 'remark']) {
+  const pkgJsonPath = path.join(rootDir, 'packages', pkgName, 'package.json');
+  const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+
+  if (!Array.isArray(pkg.files) || !pkg.files.includes('dist')) {
+    exitWithError(`packages/${pkgName}/package.json "files" array must include "dist"`);
+  }
+
+  if (!pkg.scripts?.prepack) {
+    exitWithError(`packages/${pkgName}/package.json is missing safe "prepack" script`);
+  }
+
+  // Ensure entrypoints exist in dist
+  const distJsPath = path.join(rootDir, 'packages', pkgName, 'dist', 'index.js');
+  const distDtsPath = path.join(rootDir, 'packages', pkgName, 'dist', 'index.d.ts');
+  if (!fs.existsSync(distJsPath)) {
+    exitWithError(`packages/${pkgName}/dist/index.js is missing! Make sure to run build first.`);
+  }
+  if (!fs.existsSync(distDtsPath)) {
+    exitWithError(`packages/${pkgName}/dist/index.d.ts is missing! Make sure to run build first.`);
+  }
 }
 
 // 6. Verify release assets existence and non-emptiness
