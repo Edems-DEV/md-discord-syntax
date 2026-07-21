@@ -9,6 +9,7 @@
   "scripts": {
     "prebuild": "npm run build -w @edems-dev/md-discord-syntax-core",
     "build": "npm run build --workspaces --if-present",
+    "pretest": "npm run build -w @edems-dev/md-discord-syntax-core",
     "test": "npm run test --workspaces --if-present",
     "pretypecheck": "npm run build -w @edems-dev/md-discord-syntax-core",
     "typecheck": "npm run typecheck --workspaces --if-present",
