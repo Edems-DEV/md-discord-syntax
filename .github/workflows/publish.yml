@@ -22,7 +22,7 @@ jobs:
       - name: Publish @edems-dev/md-discord-syntax-core
         run: |
           if [ -n "$NPM_TOKEN" ]; then
-            npm publish --access public --workspace=packages/core
+            npm publish --access public --provenance --workspace=packages/core
           else
             echo "NPM_TOKEN not set; skipping publish (dry-run)."
             npm publish --dry-run --workspace=packages/core
@@ -30,10 +30,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish remark-md-discord-syntax
+      - name: Publish @edems-dev/remark-discord-syntax
         run: |
           if [ -n "$NPM_TOKEN" ]; then
-            npm publish --access public --workspace=packages/remark
+            npm publish --access public --provenance --workspace=packages/remark
           else
             echo "NPM_TOKEN not set; skipping publish (dry-run)."
             npm publish --dry-run --workspace=packages/remark
@@ -41,3 +41,4 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+

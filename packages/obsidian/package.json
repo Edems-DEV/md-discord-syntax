@@ -1,5 +1,5 @@
 {
-  "name": "md-discord-syntax-obsidian",
+  "name": "obsidian-discord-syntax",
   "version": "1.0.0",
   "description": "Discord Syntax Obsidian plugin adapter",
   "private": true,

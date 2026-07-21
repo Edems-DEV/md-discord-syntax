@@ -36,8 +36,8 @@ try {
 }
 
 // Ensure Obsidian plugin details
-if (manifest.id !== 'md-discord-syntax') {
-  exitWithError(`manifest.json id must be "md-discord-syntax", got "${manifest.id}"`);
+if (manifest.id !== 'obsidian-discord-syntax') {
+  exitWithError(`manifest.json id must be "obsidian-discord-syntax", got "${manifest.id}"`);
 }
 if (manifest.name !== 'Discord Syntax') {
   exitWithError(`manifest.json name must be "Discord Syntax", got "${manifest.name}"`);
@@ -66,6 +66,10 @@ try {
   obsidianPkg = JSON.parse(fs.readFileSync(obsidianPkgPath, 'utf8'));
 } catch (e) {
   exitWithError(`Failed to read/parse packages/obsidian/package.json: ${e.message}`);
+}
+
+if (obsidianPkg.name !== 'obsidian-discord-syntax') {
+  exitWithError(`packages/obsidian/package.json name must be "obsidian-discord-syntax", got "${obsidianPkg.name}"`);
 }
 
 if (obsidianPkg.version !== manifest.version) {
@@ -99,25 +103,29 @@ try {
   exitWithError(`Failed to read/parse packages/remark/package.json: ${e.message}`);
 }
 
+if (remarkPkg.name !== '@edems-dev/remark-discord-syntax') {
+  exitWithError(`packages/remark/package.json name must be "@edems-dev/remark-discord-syntax", got "${remarkPkg.name}"`);
+}
+
 if (remarkPkg.dependencies?.['@md-discord-syntax/core']) {
-  exitWithError(`remark-md-discord-syntax still has reference to old scope "@md-discord-syntax/core"`);
+  exitWithError(`@edems-dev/remark-discord-syntax still has reference to old scope "@md-discord-syntax/core"`);
 }
 
 const remarkCoreDep = remarkPkg.dependencies?.['@edems-dev/md-discord-syntax-core'];
 if (!remarkCoreDep) {
-  exitWithError(`remark-md-discord-syntax is missing dependency on "@edems-dev/md-discord-syntax-core"`);
+  exitWithError(`@edems-dev/remark-discord-syntax is missing dependency on "@edems-dev/md-discord-syntax-core"`);
 }
 if (remarkCoreDep.startsWith('file:')) {
-  exitWithError(`remark-md-discord-syntax depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${remarkCoreDep}"). Must use normal semver.`);
+  exitWithError(`@edems-dev/remark-discord-syntax depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${remarkCoreDep}"). Must use normal semver.`);
 }
 
 if (obsidianPkg.dependencies?.['@md-discord-syntax/core']) {
-  exitWithError(`md-discord-syntax-obsidian still has reference to old scope "@md-discord-syntax/core"`);
+  exitWithError(`obsidian-discord-syntax still has reference to old scope "@md-discord-syntax/core"`);
 }
 
 const obsidianCoreDep = obsidianPkg.dependencies?.['@edems-dev/md-discord-syntax-core'];
 if (obsidianCoreDep && obsidianCoreDep.startsWith('file:')) {
-  exitWithError(`md-discord-syntax-obsidian depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${obsidianCoreDep}"). Must use normal semver.`);
+  exitWithError(`obsidian-discord-syntax depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${obsidianCoreDep}"). Must use normal semver.`);
 }
 
 // Ensure published npm packages (core & remark) configure tarballs & safe prepack

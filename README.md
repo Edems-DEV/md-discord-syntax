@@ -2,7 +2,7 @@
 
 Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subtext`) to Obsidian, MDX / Next.js, and platform-independent parsers.
 
-> **Note**: npm packages (`@edems-dev/md-discord-syntax-core` and `remark-md-discord-syntax`) are currently local monorepo packages and not yet published to npm.
+> **Note**: npm packages (`@edems-dev/md-discord-syntax-core` and `@edems-dev/remark-discord-syntax`) are currently local monorepo packages and not yet published to npm.
 
 ---
 
@@ -11,8 +11,8 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 | Package | npm Name | Description |
 | ------- | -------- | ----------- |
 | [`packages/core`](packages/core) | `@edems-dev/md-discord-syntax-core` | Platform-independent spoiler & subtext rules parser (zero dependencies). |
-| [`packages/remark`](packages/remark) | `remark-md-discord-syntax` | Remark plugin transforming `||spoiler||` and `-# subtext` for MDX. |
-| [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `md-discord-syntax`). |
+| [`packages/remark`](packages/remark) | `@edems-dev/remark-discord-syntax` | Remark plugin transforming `||spoiler||` and `-# subtext` for MDX. |
+| [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `obsidian-discord-syntax`). |
 | [`packages/quartz`](packages/quartz) | `@edems-dev/md-discord-syntax-quartz` | Reserved for future Quartz static site generator integration. |
 
 ---
@@ -36,12 +36,12 @@ const spoilers = findSpoilerRanges(text)
 // [{ from: 6, to: 16, contentFrom: 8, contentTo: 14 }]
 ```
 
-### 2. Next.js + `@next/mdx` (`remark-md-discord-syntax`)
+### 2. Next.js + `@next/mdx` (`@edems-dev/remark-discord-syntax`)
 
 Install the plugin:
 
 ```bash
-npm install remark-md-discord-syntax
+npm install @edems-dev/remark-discord-syntax
 ```
 
 Configure `next.config.mjs`:
@@ -51,7 +51,7 @@ import createMDX from '@next/mdx'
 
 const withMDX = createMDX({
   options: {
-    remarkPlugins: ['remark-md-discord-syntax'],
+    remarkPlugins: ['@edems-dev/remark-discord-syntax'],
   },
 })
 
@@ -77,7 +77,7 @@ This is a ||spoiler|| block.
    ```bash
    npm run build --workspace=packages/obsidian
    ```
-2. Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/md-discord-syntax/`.
+2. Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/obsidian-discord-syntax/`.
 3. Enable **Discord Syntax** in Obsidian Settings.
 
 ---

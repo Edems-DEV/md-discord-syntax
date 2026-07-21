@@ -1,4 +1,4 @@
-# remark-md-discord-syntax
+# @edems-dev/remark-discord-syntax
 
 Remark plugin transforming Discord-style spoiler blocks (`||spoiler||`) and subtext lines (`-# subtext`) for MDX / Markdown.
 
@@ -7,13 +7,13 @@ Part of the [md-discord-syntax](https://github.com/Edems-DEV/md-discord-syntax) 
 ## Installation
 
 ```bash
-npm install remark-md-discord-syntax
+npm install @edems-dev/remark-discord-syntax
 ```
 
 ## Minimal Usage
 
 ```js
-import { remarkMdDiscordSyntax } from 'remark-md-discord-syntax'
+import { remarkMdDiscordSyntax } from '@edems-dev/remark-discord-syntax'
 import { remark } from 'remark'
 
 const file = await remark()
@@ -28,7 +28,7 @@ import createMDX from '@next/mdx'
 
 const withMDX = createMDX({
   options: {
-    remarkPlugins: ['remark-md-discord-syntax'],
+    remarkPlugins: ['@edems-dev/remark-discord-syntax'],
   },
 })
 
@@ -40,3 +40,4 @@ export default withMDX({
 ## License
 
 [GPL-3.0](LICENSE) © Edems-DEV
+

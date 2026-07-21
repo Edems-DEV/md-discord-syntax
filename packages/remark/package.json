@@ -1,5 +1,5 @@
 {
-  "name": "remark-md-discord-syntax",
+  "name": "@edems-dev/remark-discord-syntax",
   "version": "1.0.0",
   "description": "Remark plugin for Discord-style spoiler blocks and subtext lines in MDX",
   "type": "module",
