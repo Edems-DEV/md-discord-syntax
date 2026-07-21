@@ -4,8 +4,7 @@
   "private": true,
   "description": "Monorepo for Discord syntax extensions (core, remark, obsidian)",
   "workspaces": [
-    "packages/*",
-    "examples/*"
+    "packages/*"
   ],
   "scripts": {
     "prebuild": "npm run build -w @md-discord-syntax/core",

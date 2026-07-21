@@ -13,7 +13,6 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 | [`packages/core`](packages/core) | `@md-discord-syntax/core` | Platform-independent spoiler & subtext rules parser (zero dependencies). |
 | [`packages/remark`](packages/remark) | `remark-md-discord-syntax` | Remark plugin transforming `||spoiler||` and `-# subtext` for MDX. |
 | [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `md-discord-syntax`). |
-| [`examples/next-mdx`](examples/next-mdx) | — | Minimal Next.js MDX usage example consuming `remark-md-discord-syntax`. |
 | [`packages/quartz`](packages/quartz) | `@md-discord-syntax/quartz` | Reserved for future Quartz static site generator integration. |
 
 ---
@@ -37,23 +36,39 @@ const spoilers = findSpoilerRanges(text)
 // [{ from: 6, to: 16, contentFrom: 8, contentTo: 14 }]
 ```
 
-### 2. Remark Plugin (`remark-md-discord-syntax`)
+### 2. Next.js + `@next/mdx` (`remark-md-discord-syntax`)
 
-In Next.js MDX config (`next.config.mjs`):
+Install the plugin:
+
+```bash
+npm install remark-md-discord-syntax
+```
+
+Configure `next.config.mjs`:
 
 ```js
 import createMDX from '@next/mdx'
-import { remarkMdDiscordSyntax } from 'remark-md-discord-syntax'
 
 const withMDX = createMDX({
   options: {
-    remarkPlugins: [remarkMdDiscordSyntax]
-  }
+    remarkPlugins: ['remark-md-discord-syntax'],
+  },
 })
 
-export default withMDX({
-  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx']
-})
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
+}
+
+export default withMDX(nextConfig)
+```
+
+MDX syntax example:
+
+```mdx
+This is a ||spoiler|| block.
+
+-# This is subtext
 ```
 
 ### 3. Obsidian Plugin (`packages/obsidian`)
