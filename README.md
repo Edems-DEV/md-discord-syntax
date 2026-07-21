@@ -12,7 +12,7 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 | ------- | -------- | ----------- |
 | [`packages/core`](packages/core) | `@edems-dev/md-discord-syntax-core` | Platform-independent spoiler & subtext rules parser (zero dependencies). |
 | [`packages/remark`](packages/remark) | `@edems-dev/remark-discord-syntax` | Remark plugin transforming `||spoiler||` and `-# subtext` for MDX. |
-| [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `obsidian-discord-syntax`). |
+| [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `discord-syntax`). |
 | [`packages/quartz`](packages/quartz) | `@edems-dev/md-discord-syntax-quartz` | Reserved for future Quartz static site generator integration. |
 
 ---
@@ -77,7 +77,7 @@ This is a ||spoiler|| block.
    ```bash
    npm run build --workspace=packages/obsidian
    ```
-2. Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/obsidian-discord-syntax/`.
+2. Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/discord-syntax/`.
 3. Enable **Discord Syntax** in Obsidian Settings.
 
 ---

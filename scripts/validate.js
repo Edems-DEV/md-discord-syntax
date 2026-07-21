@@ -36,8 +36,8 @@ try {
 }
 
 // Ensure Obsidian plugin details
-if (manifest.id !== 'obsidian-discord-syntax') {
-  exitWithError(`manifest.json id must be "obsidian-discord-syntax", got "${manifest.id}"`);
+if (manifest.id !== 'discord-syntax') {
+  exitWithError(`manifest.json id must be "discord-syntax", got "${manifest.id}"`);
 }
 if (manifest.name !== 'Discord Syntax') {
   exitWithError(`manifest.json name must be "Discord Syntax", got "${manifest.name}"`);
@@ -68,8 +68,8 @@ try {
   exitWithError(`Failed to read/parse packages/obsidian/package.json: ${e.message}`);
 }
 
-if (obsidianPkg.name !== 'obsidian-discord-syntax') {
-  exitWithError(`packages/obsidian/package.json name must be "obsidian-discord-syntax", got "${obsidianPkg.name}"`);
+if (obsidianPkg.name !== 'discord-syntax') {
+  exitWithError(`packages/obsidian/package.json name must be "discord-syntax", got "${obsidianPkg.name}"`);
 }
 
 if (obsidianPkg.version !== manifest.version) {
@@ -120,12 +120,12 @@ if (remarkCoreDep.startsWith('file:')) {
 }
 
 if (obsidianPkg.dependencies?.['@md-discord-syntax/core']) {
-  exitWithError(`obsidian-discord-syntax still has reference to old scope "@md-discord-syntax/core"`);
+  exitWithError(`discord-syntax still has reference to old scope "@md-discord-syntax/core"`);
 }
 
 const obsidianCoreDep = obsidianPkg.dependencies?.['@edems-dev/md-discord-syntax-core'];
 if (obsidianCoreDep && obsidianCoreDep.startsWith('file:')) {
-  exitWithError(`obsidian-discord-syntax depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${obsidianCoreDep}"). Must use normal semver.`);
+  exitWithError(`discord-syntax depends on local file spec for "@edems-dev/md-discord-syntax-core" ("${obsidianCoreDep}"). Must use normal semver.`);
 }
 
 // Ensure published npm packages (core & remark) configure tarballs & safe prepack

@@ -1,9 +1,9 @@
 {
-  "id": "obsidian-discord-syntax",
+  "id": "discord-syntax",
   "name": "Discord Syntax",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Discord-style spoiler blocks (||spoiler||) and subtext lines (-# subtext) for Obsidian Reading View and Live Preview.",
+  "description": "Discord-style `||spoiler||` and `-# subtext` for Obsidian",
   "author": "Edems-DEV",
   "authorUrl": "https://github.com/Edems-DEV",
   "isDesktopOnly": false
