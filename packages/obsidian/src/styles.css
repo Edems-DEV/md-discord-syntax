@@ -1,0 +1,137 @@
+/* Discord-style spoiler support for Obsidian Reading View and Live Preview */
+
+.note-flow-spoiler,
+.discord-syntax-spoiler {
+  background-color: var(--background-modifier-hover, #36393f);
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease;
+  user-select: none;
+  display: inline;
+  vertical-align: baseline;
+  box-sizing: border-box;
+  isolation: isolate;
+
+  /* Continuous box across splits: zero gap, zero default radius/padding */
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* Outer Left Cap */
+.note-flow-spoiler-start,
+.note-flow-spoiler-cap-left,
+.discord-syntax-spoiler-start,
+.discord-syntax-spoiler-cap-left {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  padding-left: 4px;
+}
+
+/* Outer Right Cap */
+.note-flow-spoiler-end,
+.note-flow-spoiler-cap-right,
+.discord-syntax-spoiler-end,
+.discord-syntax-spoiler-cap-right {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  padding-right: 4px;
+}
+
+/* Single Fragment (both caps) */
+.note-flow-spoiler-single,
+.discord-syntax-spoiler-single {
+  border-radius: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* Conceal ALL nested formatting paint when unrevealed */
+.note-flow-spoiler:not(.is-hovered):not(.is-revealed),
+.note-flow-spoiler:not(.is-hovered):not(.is-revealed) *,
+.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed),
+.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed) *,
+.cm-strikethrough:has(.note-flow-spoiler:not(.is-hovered):not(.is-revealed)),
+.cm-inline-code:has(.note-flow-spoiler:not(.is-hovered):not(.is-revealed)),
+.cm-strikethrough:has(.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed)),
+.cm-inline-code:has(.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed)),
+del:has(.note-flow-spoiler:not(.is-hovered):not(.is-revealed)),
+del:has(.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed)) {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  text-decoration: none !important;
+  -webkit-text-decorations-in-effect: none !important;
+  text-decoration-color: transparent !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* Inner elements inside unrevealed spoiler must not paint separate backgrounds or borders over mask */
+.note-flow-spoiler:not(.is-hovered):not(.is-revealed) *,
+.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed) * {
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Reveal entire spoiler group when any fragment is hovered or revealed */
+.note-flow-spoiler.is-hovered,
+.note-flow-spoiler.is-revealed,
+.discord-syntax-spoiler.is-hovered,
+.discord-syntax-spoiler.is-revealed {
+  background-color: var(--background-modifier-active-hover, #4f545c);
+  color: var(--text-normal, #dcddde) !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+.note-flow-spoiler.is-hovered *,
+.note-flow-spoiler.is-revealed *,
+.discord-syntax-spoiler.is-hovered *,
+.discord-syntax-spoiler.is-revealed * {
+  color: inherit;
+  -webkit-text-fill-color: inherit;
+  text-decoration: revert;
+  text-decoration-color: revert;
+  text-shadow: revert;
+  box-shadow: revert;
+  background-color: revert;
+  border: revert;
+}
+
+/* Hide delimiters in Live Preview when safely concealed */
+.note-flow-spoiler-delimiter,
+.discord-syntax-spoiler-delimiter {
+  display: inline-block;
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-size: 0;
+  vertical-align: middle;
+  transition: opacity 0.1s ease;
+}
+
+.note-flow-spoiler.is-hovered .note-flow-spoiler-delimiter,
+.discord-syntax-spoiler.is-hovered .discord-syntax-spoiler-delimiter {
+  opacity: 0;
+}
+
+/* ── Discord subtext (-# ) ──────────────────────────────────────────────── */
+
+.discord-subtext {
+  font-size: var(--font-smaller);
+  color: var(--text-muted);
+  display: inline;
+}
+
+.discord-subtext-marker {
+  display: none;
+}
+
+.discord-subtext-marker-active {
+  font-size: var(--font-smaller);
+  color: var(--text-faint);
+  display: inline;
+  opacity: 0.6;
+}

@@ -30,7 +30,7 @@
   "author": "Edems-DEV",
   "license": "GPL-3.0",
   "dependencies": {
-    "@md-discord-syntax/core": "file:../core",
+    "@md-discord-syntax/core": "^1.0.0",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
