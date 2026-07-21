@@ -8,12 +8,12 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 
 ## Workspace Packages
 
-| Package | npm Name | Description |
-| ------- | -------- | ----------- |
-| [`packages/core`](packages/core) | `@edems-dev/md-discord-syntax-core` | Platform-independent spoiler & subtext rules parser (zero dependencies). |
-| [`packages/remark`](packages/remark) | `@edems-dev/remark-discord-syntax` | Remark plugin transforming `||spoiler||` and `-# subtext` for MDX. |
-| [`packages/obsidian`](packages/obsidian) | — | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `discord-syntax`). |
-| [`packages/quartz`](packages/quartz) | `@edems-dev/md-discord-syntax-quartz` | Reserved for future Quartz static site generator integration. |
+| Package                                  | npm Name                              | Description                                                                       |
+| ---------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| [`packages/core`](packages/core)         | `@edems-dev/md-discord-syntax-core`   | Platform-independent spoiler & subtext rules parser (zero dependencies).          |
+| [`packages/remark`](packages/remark)     | `@edems-dev/remark-discord-syntax`    | Remark plugin transforming `                                                      |     | spoiler |     | `and`-# subtext` for MDX. |
+| [`packages/obsidian`](packages/obsidian) | —                                     | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `discord-syntax`). |
+| [`packages/quartz`](packages/quartz)     | `@edems-dev/md-discord-syntax-quartz` | Reserved for future Quartz static site generator integration.                     |
 
 ---
 
@@ -29,10 +29,14 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 ### 1. Core Parser (`@edems-dev/md-discord-syntax-core`)
 
 ```ts
-import { findSpoilerRanges, isSubtextLine, stripSubtextPrefix } from '@edems-dev/md-discord-syntax-core'
+import {
+  findSpoilerRanges,
+  isSubtextLine,
+  stripSubtextPrefix,
+} from "@edems-dev/md-discord-syntax-core";
 
-const text = "Hello ||secret|| world"
-const spoilers = findSpoilerRanges(text)
+const text = "Hello ||secret|| world";
+const spoilers = findSpoilerRanges(text);
 // [{ from: 6, to: 16, contentFrom: 8, contentTo: 14 }]
 ```
 
@@ -47,20 +51,20 @@ npm install @edems-dev/remark-discord-syntax
 Configure `next.config.mjs`:
 
 ```js
-import createMDX from '@next/mdx'
+import createMDX from "@next/mdx";
 
 const withMDX = createMDX({
   options: {
-    remarkPlugins: ['@edems-dev/remark-discord-syntax'],
+    remarkPlugins: ["@edems-dev/remark-discord-syntax"],
   },
-})
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
-}
+  pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+};
 
-export default withMDX(nextConfig)
+export default withMDX(nextConfig);
 ```
 
 MDX syntax example:

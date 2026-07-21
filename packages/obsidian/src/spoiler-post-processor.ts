@@ -1,44 +1,50 @@
-export function processSpoilers(element: HTMLElement, doc: Document = globalThis.document): void {
-  if (!element || !doc) return;
+function createDetachedElement<K extends keyof HTMLElementTagNameMap>(
+  doc: Document,
+  tag: K,
+): HTMLElementTagNameMap[K] {
+  const fragment = doc.createDocumentFragment();
+  if (typeof fragment.createEl === "function") {
+    return fragment.createEl(tag);
+  }
+  return doc.createElement(tag);
+}
 
+export function processSpoilers(
+  element: HTMLElement,
+  doc: Document = element.ownerDocument,
+): void {
   function createSpoilerSpan(): HTMLSpanElement {
-    const spoilerSpan = doc.createElement('span');
-    spoilerSpan.classList.add('note-flow-spoiler', 'discord-syntax-spoiler');
-    spoilerSpan.setAttribute('role', 'button');
-    spoilerSpan.setAttribute('tabindex', '0');
-    spoilerSpan.setAttribute('aria-expanded', 'false');
-    spoilerSpan.setAttribute('aria-label', 'Spoiler, click to reveal');
+    const spoilerSpan = createDetachedElement(doc, "span");
+    spoilerSpan.classList.add("note-flow-spoiler", "discord-syntax-spoiler");
+    spoilerSpan.setAttribute("role", "button");
+    spoilerSpan.setAttribute("tabindex", "0");
+    spoilerSpan.setAttribute("aria-expanded", "false");
+    spoilerSpan.setAttribute("aria-label", "Spoiler, click to reveal");
 
-    const innerSpan = doc.createElement('span');
-    innerSpan.setAttribute('aria-hidden', 'true');
-
-    const originalAppendChild = spoilerSpan.appendChild.bind(spoilerSpan);
-    originalAppendChild(innerSpan);
-
-    spoilerSpan.appendChild = function <T extends Node>(node: T): T {
-      return innerSpan.appendChild(node);
-    };
+    const innerSpan = createDetachedElement(doc, "span");
+    innerSpan.setAttribute("aria-hidden", "true");
+    spoilerSpan.appendChild(innerSpan);
 
     function toggleSpoiler() {
-      const isRevealed = spoilerSpan.classList.contains('is-revealed');
+      const isRevealed = spoilerSpan.classList.contains("is-revealed");
       if (isRevealed) {
-        spoilerSpan.classList.remove('is-revealed');
-        spoilerSpan.setAttribute('aria-expanded', 'false');
-        spoilerSpan.setAttribute('aria-label', 'Spoiler, click to reveal');
-        innerSpan.setAttribute('aria-hidden', 'true');
+        spoilerSpan.classList.remove("is-revealed");
+        spoilerSpan.setAttribute("aria-expanded", "false");
+        spoilerSpan.setAttribute("aria-label", "Spoiler, click to reveal");
+        innerSpan.setAttribute("aria-hidden", "true");
       } else {
-        spoilerSpan.classList.add('is-revealed');
-        spoilerSpan.setAttribute('aria-expanded', 'true');
-        spoilerSpan.removeAttribute('aria-label');
-        innerSpan.setAttribute('aria-hidden', 'false');
+        spoilerSpan.classList.add("is-revealed");
+        spoilerSpan.setAttribute("aria-expanded", "true");
+        spoilerSpan.removeAttribute("aria-label");
+        innerSpan.setAttribute("aria-hidden", "false");
       }
     }
 
-    spoilerSpan.addEventListener('click', () => {
+    spoilerSpan.addEventListener("click", () => {
       toggleSpoiler();
     });
-    spoilerSpan.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+    spoilerSpan.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         toggleSpoiler();
       }
@@ -48,15 +54,20 @@ export function processSpoilers(element: HTMLElement, doc: Document = globalThis
 
   const markers: (HTMLSpanElement | null)[] = [];
 
-  function insertMarker(parent: Node, node: Node, text: string, index: number): Text | null {
+  function insertMarker(
+    parent: Node,
+    node: Node,
+    text: string,
+    index: number,
+  ): Text | null {
     const beforeStr = text.slice(0, index);
     const afterStr = text.slice(index + 2);
 
     if (beforeStr) {
       parent.insertBefore(doc.createTextNode(beforeStr), node);
     }
-    const marker = doc.createElement('span');
-    marker.setAttribute('data-spoiler-marker', 'true');
+    const marker = createDetachedElement(doc, "span");
+    marker.setAttribute("data-spoiler-marker", "true");
     parent.insertBefore(marker, node);
     markers.push(marker);
 
@@ -70,17 +81,22 @@ export function processSpoilers(element: HTMLElement, doc: Document = globalThis
 
   function collectMarkers(node: Node): void {
     if (node.nodeType === Node.TEXT_NODE) {
-      let text = node.nodeValue || '';
-      let idx = text.indexOf('||');
+      let text = node.nodeValue || "";
+      let idx = text.indexOf("||");
       if (idx !== -1 && node.parentNode) {
         const parent = node.parentNode;
         let remainingNode = insertMarker(parent, node, text, idx);
         parent.removeChild(node);
         while (remainingNode) {
-          text = remainingNode.nodeValue || '';
-          idx = text.indexOf('||');
+          text = remainingNode.nodeValue || "";
+          idx = text.indexOf("||");
           if (idx !== -1) {
-            const nextRemaining = insertMarker(parent, remainingNode, text, idx);
+            const nextRemaining = insertMarker(
+              parent,
+              remainingNode,
+              text,
+              idx,
+            );
             parent.removeChild(remainingNode);
             remainingNode = nextRemaining;
           } else {
@@ -90,10 +106,13 @@ export function processSpoilers(element: HTMLElement, doc: Document = globalThis
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node as Element;
-      if (el.nodeName === 'PRE' || el.nodeName === 'CODE') {
+      if (el.nodeName === "PRE" || el.nodeName === "CODE") {
         return;
       }
-      if (el.classList.contains('note-flow-spoiler') || el.classList.contains('discord-syntax-spoiler')) {
+      if (
+        el.classList.contains("note-flow-spoiler") ||
+        el.classList.contains("discord-syntax-spoiler")
+      ) {
         return;
       }
 
@@ -114,13 +133,13 @@ export function processSpoilers(element: HTMLElement, doc: Document = globalThis
     const spoilerSpan = createSpoilerSpan();
 
     let usedRange = false;
-    if (typeof doc.createRange === 'function') {
+    if (typeof doc.createRange === "function") {
       try {
         const range = doc.createRange();
         range.setStartAfter(startMarker);
         range.setEndBefore(endMarker);
         const fragment = range.extractContents();
-        spoilerSpan.appendChild(fragment);
+        spoilerSpan.firstElementChild?.appendChild(fragment);
 
         if (startMarker.parentNode) {
           startMarker.parentNode.insertBefore(spoilerSpan, startMarker);
@@ -138,7 +157,10 @@ export function processSpoilers(element: HTMLElement, doc: Document = globalThis
     }
 
     if (!usedRange) {
-      if (startMarker.parentNode && startMarker.parentNode === endMarker.parentNode) {
+      if (
+        startMarker.parentNode &&
+        startMarker.parentNode === endMarker.parentNode
+      ) {
         const parent = startMarker.parentNode;
         parent.insertBefore(spoilerSpan, startMarker);
 
@@ -149,7 +171,7 @@ export function processSpoilers(element: HTMLElement, doc: Document = globalThis
         for (let j = startIndex + 1; j < endIndex; j++) {
           const child = children[j];
           parent.removeChild(child);
-          spoilerSpan.appendChild(child);
+          spoilerSpan.firstElementChild?.appendChild(child);
         }
 
         parent.removeChild(startMarker);
@@ -163,7 +185,7 @@ export function processSpoilers(element: HTMLElement, doc: Document = globalThis
 
   for (const marker of markers) {
     if (marker && marker.parentNode) {
-      marker.parentNode.insertBefore(doc.createTextNode('||'), marker);
+      marker.parentNode.insertBefore(doc.createTextNode("||"), marker);
       marker.parentNode.removeChild(marker);
     }
   }

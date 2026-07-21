@@ -1,2 +1,2 @@
-export * from './spoiler.js'
-export * from './subtext.js'
+export * from "./spoiler.js";
+export * from "./subtext.js";

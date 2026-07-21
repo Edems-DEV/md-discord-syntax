@@ -3,14 +3,17 @@ name: Release Obsidian Plugin
 on:
   push:
     tags:
-      - 'v*'
-      - '[0-9]*.[0-9]*.[0-9]*'
+      - "v*"
+      - "[0-9]*.[0-9]*.[0-9]*"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
 
     steps:
       - name: Checkout repository
@@ -20,7 +23,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -28,16 +31,32 @@ jobs:
       - name: Build, test & validate
         run: |
           npm run build
+          npm run lint
           npm run typecheck
           npm run test
           npm run validate
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
+          generate_release_notes: true
+          body: |
+            Obsidian plugin release for Discord Syntax.
+
+            Plugin ID: discord-syntax
+
+            Install by copying main.js, manifest.json, and styles.css into .obsidian/plugins/discord-syntax/.
           files: |
             packages/obsidian/main.js
             packages/obsidian/manifest.json
             packages/obsidian/styles.css
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest main.js provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: packages/obsidian/main.js
+
+      - name: Attest styles.css provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: packages/obsidian/styles.css

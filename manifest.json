@@ -3,7 +3,7 @@
   "name": "Discord Syntax",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Discord-style `||spoiler||` and `-# subtext` for Obsidian",
+  "description": "Discord-style `||spoiler||` and `-# subtext` markdown formatting extension.",
   "author": "Edems-DEV",
   "authorUrl": "https://github.com/Edems-DEV",
   "isDesktopOnly": false

@@ -11,16 +11,20 @@
     "build": "npm run build --workspaces --if-present",
     "pretest": "npm run build -w @edems-dev/md-discord-syntax-core",
     "test": "npm run test --workspaces --if-present",
+    "lint": "eslint \"packages/**/src/**/*.ts\"",
     "pretypecheck": "npm run build -w @edems-dev/md-discord-syntax-core",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate": "node scripts/validate.js",
-    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css,yml,yaml}\""
   },
   "author": "Edems-DEV",
   "license": "GPL-3.0",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
     "prettier": "^3.3.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.65.0"
   }
 }
