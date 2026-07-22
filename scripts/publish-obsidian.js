@@ -97,6 +97,7 @@ try {
   execSync(`git push origin ${tag}`, { stdio: "inherit", cwd: rootDir });
   console.log(`\n✨ Tag "${tag}" successfully pushed to GitHub!`);
   console.log("🎉 GitHub Actions will now build and publish the GitHub Release automatically.");
+  console.log('Your package is being built, after release check for new release at "https://community.obsidian.md/account/plugins/md-discord-syntax"');
 } catch (err) {
   console.error(`❌ Failed to create/push git tag: ${err.message}`);
   process.exit(1);
