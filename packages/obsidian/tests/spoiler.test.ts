@@ -125,14 +125,83 @@ void test("Spoiler Detection & Live Preview", async (t) => {
     },
   );
 
-  await t.test("returns revealed state in Source Mode", () => {
+  await t.test("returns editing state when cursor is inside spoiler range", () => {
     const docText = "Hello ||secret|| world";
-    const state = EditorState.create({
+    // Cursor at pos 0 (outside)
+    const stateOutside = EditorState.create({
       doc: docText,
+      selection: { anchor: 0 },
     });
-    // Default without editorLivePreviewField returns hidden
-    assert.strictEqual(getSpoilerState(state, 6, 16), "hidden");
+    assert.strictEqual(getSpoilerState(stateOutside, 6, 16), "hidden");
+
+    // Cursor at pos 6 (start of ||secret||)
+    const stateStart = EditorState.create({
+      doc: docText,
+      selection: { anchor: 6 },
+    });
+    assert.strictEqual(getSpoilerState(stateStart, 6, 16), "editing");
+
+    // Cursor at pos 10 (inside secret)
+    const stateInside = EditorState.create({
+      doc: docText,
+      selection: { anchor: 10 },
+    });
+    assert.strictEqual(getSpoilerState(stateInside, 6, 16), "editing");
+
+    // Cursor at pos 16 (end of ||secret||)
+    const stateEnd = EditorState.create({
+      doc: docText,
+      selection: { anchor: 16 },
+    });
+    assert.strictEqual(getSpoilerState(stateEnd, 6, 16), "editing");
+
+    // Cursor at pos 17 (after spoiler)
+    const stateAfter = EditorState.create({
+      doc: docText,
+      selection: { anchor: 17 },
+    });
+    assert.strictEqual(getSpoilerState(stateAfter, 6, 16), "hidden");
   });
+
+  await t.test(
+    "buildSpoilerDecorations omits decorations (source mode) when cursor is in spoiler",
+    () => {
+      const docText = "Hello ||secret|| world";
+
+      // Cursor inside spoiler (pos 10)
+      const mockStateInside = EditorState.create({
+        doc: docText,
+        selection: { anchor: 10 },
+      });
+      const mockViewInside = {
+        state: mockStateInside,
+        visibleRanges: [{ from: 0, to: docText.length }],
+      } as unknown as EditorView;
+
+      const decorationsInside = buildSpoilerDecorations(mockViewInside);
+      const iterInside = decorationsInside.iter();
+      assert.strictEqual(iterInside.value, null); // 0 decorations = source mode
+
+      // Cursor outside spoiler (pos 0)
+      const mockStateOutside = EditorState.create({
+        doc: docText,
+        selection: { anchor: 0 },
+      });
+      const mockViewOutside = {
+        state: mockStateOutside,
+        visibleRanges: [{ from: 0, to: docText.length }],
+      } as unknown as EditorView;
+
+      const decorationsOutside = buildSpoilerDecorations(mockViewOutside);
+      const itemsOutside = [];
+      const iterOutside = decorationsOutside.iter();
+      while (iterOutside.value !== null) {
+        itemsOutside.push(iterOutside.value);
+        iterOutside.next();
+      }
+      assert.strictEqual(itemsOutside.length, 3); // 3 decorations = rendered spoiler mode
+    },
+  );
 
   await t.test("styles.css contains spoiler rules for Source Mode", () => {
     const possiblePaths = [

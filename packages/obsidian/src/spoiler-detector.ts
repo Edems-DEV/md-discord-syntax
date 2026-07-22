@@ -69,6 +69,19 @@ export const spoilerStateField = StateField.define<SpoilerStateEntry[]>({
   },
 });
 
+export function isSelectionInSpoiler(
+  state: EditorState,
+  from: number,
+  to: number,
+): boolean {
+  for (const range of state.selection.ranges) {
+    if (range.from <= to && range.to >= from) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function getSpoilerState(
   state: EditorState,
   from: number,
@@ -80,6 +93,10 @@ export function getSpoilerState(
     if (isLivePreview === false) {
       return "revealed";
     }
+  }
+
+  if (isSelectionInSpoiler(state, from, to)) {
+    return "editing";
   }
 
   const entries = state.field(spoilerStateField, false) || [];
@@ -409,18 +426,7 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
               view.focus();
               return true;
             } else if (currentState === "editing") {
-              event.preventDefault();
-              view.dispatch({
-                effects: setSpoilerStateEffect.of({
-                  from: spoiler.from,
-                  to: spoiler.to,
-                  state: "hidden",
-                }),
-                selection: { anchor: spoiler.to },
-                scrollIntoView: true,
-              });
-              view.focus();
-              return true;
+              return;
             }
           }
         }
@@ -507,18 +513,7 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
               view.focus();
               return true;
             } else if (currentState === "editing") {
-              event.preventDefault();
-              view.dispatch({
-                effects: setSpoilerStateEffect.of({
-                  from: spoiler.from,
-                  to: spoiler.to,
-                  state: "hidden",
-                }),
-                selection: { anchor: spoiler.to },
-                scrollIntoView: true,
-              });
-              view.focus();
-              return true;
+              return;
             }
           }
         }
