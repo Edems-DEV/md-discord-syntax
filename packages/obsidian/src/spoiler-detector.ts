@@ -75,8 +75,14 @@ export function isSelectionInSpoiler(
   to: number,
 ): boolean {
   for (const range of state.selection.ranges) {
-    if (range.from <= to && range.to >= from) {
-      return true;
+    if (range.empty) {
+      if (range.head >= from && range.head < to) {
+        return true;
+      }
+    } else {
+      if (range.from < to && range.to > from) {
+        return true;
+      }
     }
   }
   return false;
@@ -93,10 +99,6 @@ export function getSpoilerState(
     if (isLivePreview === false) {
       return "revealed";
     }
-  }
-
-  if (isSelectionInSpoiler(state, from, to)) {
-    return "editing";
   }
 
   const entries = state.field(spoilerStateField, false) || [];
@@ -288,6 +290,10 @@ export function buildSpoilerDecorations(view: EditorView): DecorationSet {
         continue;
       }
 
+      if (isSelectionInSpoiler(state, spoiler.from, spoiler.to)) {
+        continue;
+      }
+
       if (isRangeInCodeNode(state, spoiler.from, spoiler.to)) {
         continue;
       }
@@ -426,7 +432,18 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
               view.focus();
               return true;
             } else if (currentState === "editing") {
-              return;
+              event.preventDefault();
+              view.dispatch({
+                effects: setSpoilerStateEffect.of({
+                  from: spoiler.from,
+                  to: spoiler.to,
+                  state: "hidden",
+                }),
+                selection: { anchor: spoiler.to },
+                scrollIntoView: true,
+              });
+              view.focus();
+              return true;
             }
           }
         }
@@ -472,6 +489,19 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
                   });
                   view.focus();
                   return true;
+                } else if (currentState === "editing") {
+                  event.preventDefault();
+                  view.dispatch({
+                    effects: setSpoilerStateEffect.of({
+                      from: spoiler.from,
+                      to: spoiler.to,
+                      state: "hidden",
+                    }),
+                    selection: { anchor: spoiler.to },
+                    scrollIntoView: true,
+                  });
+                  view.focus();
+                  return true;
                 }
               }
             }
@@ -513,7 +543,18 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
               view.focus();
               return true;
             } else if (currentState === "editing") {
-              return;
+              event.preventDefault();
+              view.dispatch({
+                effects: setSpoilerStateEffect.of({
+                  from: spoiler.from,
+                  to: spoiler.to,
+                  state: "hidden",
+                }),
+                selection: { anchor: spoiler.to },
+                scrollIntoView: true,
+              });
+              view.focus();
+              return true;
             }
           }
         }

@@ -10,6 +10,7 @@ import {
   buildSpoilerDecorations,
   findSpoilerRanges,
   getSpoilerState,
+  isSelectionInSpoiler,
 } from "../src/spoiler-detector.js";
 
 void test("Spoiler Detection & Live Preview", async (t) => {
@@ -125,42 +126,35 @@ void test("Spoiler Detection & Live Preview", async (t) => {
     },
   );
 
-  await t.test("returns editing state when cursor is inside spoiler range", () => {
+  await t.test("isSelectionInSpoiler detects when cursor/selection is inside spoiler range", () => {
     const docText = "Hello ||secret|| world";
     // Cursor at pos 0 (outside)
     const stateOutside = EditorState.create({
       doc: docText,
       selection: { anchor: 0 },
     });
-    assert.strictEqual(getSpoilerState(stateOutside, 6, 16), "hidden");
+    assert.strictEqual(isSelectionInSpoiler(stateOutside, 6, 16), false);
 
     // Cursor at pos 6 (start of ||secret||)
     const stateStart = EditorState.create({
       doc: docText,
       selection: { anchor: 6 },
     });
-    assert.strictEqual(getSpoilerState(stateStart, 6, 16), "editing");
+    assert.strictEqual(isSelectionInSpoiler(stateStart, 6, 16), true);
 
     // Cursor at pos 10 (inside secret)
     const stateInside = EditorState.create({
       doc: docText,
       selection: { anchor: 10 },
     });
-    assert.strictEqual(getSpoilerState(stateInside, 6, 16), "editing");
+    assert.strictEqual(isSelectionInSpoiler(stateInside, 6, 16), true);
 
-    // Cursor at pos 16 (end of ||secret||)
+    // Cursor at pos 16 (end of ||secret||, outside)
     const stateEnd = EditorState.create({
       doc: docText,
       selection: { anchor: 16 },
     });
-    assert.strictEqual(getSpoilerState(stateEnd, 6, 16), "editing");
-
-    // Cursor at pos 17 (after spoiler)
-    const stateAfter = EditorState.create({
-      doc: docText,
-      selection: { anchor: 17 },
-    });
-    assert.strictEqual(getSpoilerState(stateAfter, 6, 16), "hidden");
+    assert.strictEqual(isSelectionInSpoiler(stateEnd, 6, 16), false);
   });
 
   await t.test(
