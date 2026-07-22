@@ -1,45 +1,93 @@
-import { Plugin, MarkdownView } from "obsidian";
+import { Plugin, MarkdownView, Notice } from "obsidian";
 import { EditorView } from "@codemirror/view";
+import type { Extension } from "@codemirror/state";
 import { processSpoilers } from "./spoiler-post-processor";
 import {
-  spoilerLivePreviewExtension,
   findSpoilerRanges,
   getSpoilerState,
   setSpoilerStateEffect,
 } from "./spoiler-detector";
 import { processSubtextParagraph } from "./subtext-post-processor";
-import { subtextEditorPlugin } from "./subtext-live-preview";
-
-interface ObsidianEditor {
-  cm?: EditorView;
-}
+import {
+  DiscordSyntaxSettings,
+  normalizeSettings,
+  getEnabledEditorExtensions,
+} from "./settings";
+import { DiscordSyntaxSettingTab } from "./settings-tab";
+import { applyStyleVariables, removeStyleVariables } from "./style-manager";
 
 export default class DiscordSyntaxPlugin extends Plugin {
-  onload() {
+  settings!: DiscordSyntaxSettings;
+  private editorExtensions: Extension[] = [];
+  private saveQueue: Promise<void> = Promise.resolve();
+  private styledBodies = new Set<HTMLElement>();
+
+  async onload() {
+    await this.loadSettings();
+
+    this.applyStyles();
+
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => this.applyStyles()),
+    );
+    this.registerEvent(
+      this.app.workspace.on("window-open", () => this.applyStyles()),
+    );
+
     // ── Reading View Post Processor ──────────────────────────────────────
     this.registerMarkdownPostProcessor((element: HTMLElement) => {
-      const targets = element.findAll("p, li, .callout-content");
-      targets.forEach((el) => {
-        processSubtextParagraph(el);
-      });
-      processSpoilers(element);
+      if (this.settings.enableSubtext) {
+        const selector = "p, li, .callout-content";
+        const targets = new Set<HTMLElement>();
+        if (
+          typeof element.matches === "function" &&
+          element.matches(selector)
+        ) {
+          targets.add(element);
+        }
+        const finder = element as HTMLElement & {
+          findAll?: (s: string) => HTMLElement[];
+        };
+        if (typeof finder.findAll === "function") {
+          const children = finder.findAll(selector);
+          for (let i = 0; i < children.length; i++) {
+            targets.add(children[i]);
+          }
+        }
+        for (const target of targets) {
+          processSubtextParagraph(target);
+        }
+      }
+      if (this.settings.enableSpoilers) {
+        processSpoilers(element);
+      }
     });
 
-    // ── Live Preview Extensions ──────────────────────────────────────────
-    this.registerEditorExtension(subtextEditorPlugin);
-    this.registerEditorExtension(spoilerLivePreviewExtension);
+    // ── Live Preview Extensions (Mutable Array Pattern) ─────────────────
+    this.editorExtensions.push(...getEnabledEditorExtensions(this.settings));
+    this.registerEditorExtension(this.editorExtensions);
+
+    // ── Settings Tab ─────────────────────────────────────────────────────
+    this.addSettingTab(new DiscordSyntaxSettingTab(this.app, this));
 
     // ── Commands ─────────────────────────────────────────────────────────
     this.addCommand({
       id: "toggle-all-spoilers",
       name: "Toggle all spoilers in active note",
       callback: () => {
+        if (!this.settings.enableSpoilers) {
+          new Notice("Spoiler syntax is disabled in settings");
+          return;
+        }
+
         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (!activeView) return;
 
         const mode = activeView.getMode();
         if (mode === "preview") {
-          const container = activeView.previewMode?.containerEl;
+          const container =
+            activeView.contentEl.find(".markdown-preview-view") ??
+            activeView.contentEl;
           if (!container) return;
           const spoilers = container.findAll(
             ".note-flow-spoiler, .discord-syntax-spoiler",
@@ -71,14 +119,9 @@ export default class DiscordSyntaxPlugin extends Plugin {
             }
           }
         } else if (mode === "source") {
-          const editor = activeView.editor as unknown as ObsidianEditor;
-          const cm = editor.cm;
-          if (
-            !cm ||
-            !(cm instanceof EditorView) ||
-            typeof cm.dispatch !== "function"
-          )
-            return;
+          const cmEl = activeView.contentEl.find(".cm-editor");
+          const cm = cmEl ? EditorView.findFromDOM(cmEl) : null;
+          if (!cm || typeof cm.dispatch !== "function") return;
 
           const state = cm.state;
           const text = state.doc.toString();
@@ -125,5 +168,72 @@ export default class DiscordSyntaxPlugin extends Plugin {
     });
   }
 
-  onunload() {}
+  async loadSettings() {
+    const loadedData: unknown = await this.loadData();
+    this.settings = normalizeSettings(loadedData);
+  }
+
+  async saveSettings(): Promise<void> {
+    const queue = this.saveQueue
+      .then(async () => {
+        await this.saveData(this.settings);
+      })
+      .catch((err) => {
+        console.error("Discord Syntax: Failed to save settings", err);
+      });
+    this.saveQueue = queue;
+    return queue;
+  }
+
+  public getTargetBodies(): HTMLElement[] {
+    const bodies = new Set<HTMLElement>();
+
+    if (typeof document !== "undefined" && document.body) {
+      bodies.add(document.body);
+    }
+    if (typeof activeDocument !== "undefined" && activeDocument.body) {
+      bodies.add(activeDocument.body);
+    }
+    if (this.app?.workspace?.containerEl?.ownerDocument?.body) {
+      bodies.add(this.app.workspace.containerEl.ownerDocument.body);
+    }
+    if (typeof this.app?.workspace?.iterateAllLeaves === "function") {
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        const body = leaf.view?.containerEl?.ownerDocument?.body;
+        if (body) {
+          bodies.add(body);
+        }
+      });
+    }
+
+    return Array.from(bodies);
+  }
+
+  public applyStyles(extraTarget?: HTMLElement): void {
+    const bodies = this.getTargetBodies();
+    if (extraTarget) {
+      bodies.push(extraTarget);
+    }
+    for (const body of bodies) {
+      this.styledBodies.add(body);
+      applyStyleVariables(this.settings, body);
+    }
+  }
+
+  rebuildEditorExtensions() {
+    this.editorExtensions.length = 0;
+    this.editorExtensions.push(...getEnabledEditorExtensions(this.settings));
+    this.app.workspace.updateOptions();
+  }
+
+  onunload() {
+    const bodiesToClean = new Set<HTMLElement>([
+      ...this.getTargetBodies(),
+      ...this.styledBodies,
+    ]);
+    for (const body of bodiesToClean) {
+      removeStyleVariables(body);
+    }
+    this.styledBodies.clear();
+  }
 }

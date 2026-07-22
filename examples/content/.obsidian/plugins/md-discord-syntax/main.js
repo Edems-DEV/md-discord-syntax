@@ -28,7 +28,7 @@ __export(main_exports, {
   default: () => DiscordSyntaxPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 var import_view3 = require("@codemirror/view");
 
 // ../core/dist/spoiler.js
@@ -1114,27 +1114,459 @@ function buildDecorations(view) {
   return builder.finish();
 }
 
-// src/main.ts
-var DiscordSyntaxPlugin = class extends import_obsidian2.Plugin {
-  onload() {
-    this.registerMarkdownPostProcessor((element) => {
-      const targets = element.findAll("p, li, .callout-content");
-      targets.forEach((el) => {
-        processSubtextParagraph(el);
-      });
-      processSpoilers(element);
+// src/settings.ts
+var DEFAULT_SETTINGS = {
+  enableSpoilers: true,
+  enableSubtext: true,
+  spoilerHiddenColor: "#36393f",
+  spoilerRevealedColor: "#4f545c",
+  spoilerTextColor: "#dcddde",
+  spoilerRadius: 4,
+  spoilerPadding: 4,
+  subtextColor: "#72767d",
+  subtextFontSize: 12,
+  subtextOpacity: 0.75
+};
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+function normalizeNumber(value, defaultValue, min, max) {
+  if (typeof value !== "number" || isNaN(value) || !isFinite(value)) {
+    return defaultValue;
+  }
+  return clamp(value, min, max);
+}
+function normalizeString(value, defaultValue) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return defaultValue;
+  }
+  return value.trim();
+}
+function normalizeBoolean(value, defaultValue) {
+  if (typeof value !== "boolean") {
+    return defaultValue;
+  }
+  return value;
+}
+function normalizeSettings(data) {
+  if (!data || typeof data !== "object") {
+    return { ...DEFAULT_SETTINGS };
+  }
+  const record = data;
+  return {
+    enableSpoilers: normalizeBoolean(
+      record.enableSpoilers,
+      DEFAULT_SETTINGS.enableSpoilers
+    ),
+    enableSubtext: normalizeBoolean(
+      record.enableSubtext,
+      DEFAULT_SETTINGS.enableSubtext
+    ),
+    spoilerHiddenColor: normalizeString(
+      record.spoilerHiddenColor,
+      DEFAULT_SETTINGS.spoilerHiddenColor
+    ),
+    spoilerRevealedColor: normalizeString(
+      record.spoilerRevealedColor,
+      DEFAULT_SETTINGS.spoilerRevealedColor
+    ),
+    spoilerTextColor: normalizeString(
+      record.spoilerTextColor,
+      DEFAULT_SETTINGS.spoilerTextColor
+    ),
+    spoilerRadius: normalizeNumber(
+      record.spoilerRadius,
+      DEFAULT_SETTINGS.spoilerRadius,
+      0,
+      16
+    ),
+    spoilerPadding: normalizeNumber(
+      record.spoilerPadding,
+      DEFAULT_SETTINGS.spoilerPadding,
+      0,
+      12
+    ),
+    subtextColor: normalizeString(
+      record.subtextColor,
+      DEFAULT_SETTINGS.subtextColor
+    ),
+    subtextFontSize: normalizeNumber(
+      record.subtextFontSize,
+      DEFAULT_SETTINGS.subtextFontSize,
+      8,
+      24
+    ),
+    subtextOpacity: normalizeNumber(
+      record.subtextOpacity,
+      DEFAULT_SETTINGS.subtextOpacity,
+      0.1,
+      1
+    )
+  };
+}
+function resetAppearanceSettings(settings) {
+  return {
+    enableSpoilers: settings.enableSpoilers,
+    enableSubtext: settings.enableSubtext,
+    spoilerHiddenColor: DEFAULT_SETTINGS.spoilerHiddenColor,
+    spoilerRevealedColor: DEFAULT_SETTINGS.spoilerRevealedColor,
+    spoilerTextColor: DEFAULT_SETTINGS.spoilerTextColor,
+    spoilerRadius: DEFAULT_SETTINGS.spoilerRadius,
+    spoilerPadding: DEFAULT_SETTINGS.spoilerPadding,
+    subtextColor: DEFAULT_SETTINGS.subtextColor,
+    subtextFontSize: DEFAULT_SETTINGS.subtextFontSize,
+    subtextOpacity: DEFAULT_SETTINGS.subtextOpacity
+  };
+}
+function getEnabledEditorExtensions(settings) {
+  const extensions = [];
+  if (settings.enableSubtext) {
+    extensions.push(subtextEditorPlugin);
+  }
+  if (settings.enableSpoilers) {
+    extensions.push(spoilerLivePreviewExtension);
+  }
+  return extensions;
+}
+
+// src/settings-tab.ts
+var import_obsidian2 = require("obsidian");
+var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "Discord Syntax Settings" });
+    const updateStyles = () => {
+      const settingsBody = containerEl.ownerDocument?.body;
+      this.plugin.applyStyles(settingsBody);
+    };
+    new import_obsidian2.Setting(containerEl).setName("Enable Spoilers syntax").setDesc("Enable ||spoiler|| syntax in Reading View and Live Preview.").addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.enableSpoilers).onChange((value) => {
+        if (this.plugin.settings.enableSpoilers === value) return;
+        this.plugin.settings.enableSpoilers = value;
+        this.plugin.rebuildEditorExtensions();
+        updateSections();
+        void this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian2.Setting(containerEl).setName("Enable Subtext syntax").setDesc("Enable -# subtext syntax in Reading View and Live Preview.").addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.enableSubtext).onChange((value) => {
+        if (this.plugin.settings.enableSubtext === value) return;
+        this.plugin.settings.enableSubtext = value;
+        this.plugin.rebuildEditorExtensions();
+        updateSections();
+        void this.plugin.saveSettings();
+      })
+    );
+    const spoilerDetails = containerEl.createEl("details", {
+      cls: "discord-syntax-details"
     });
-    this.registerEditorExtension(subtextEditorPlugin);
-    this.registerEditorExtension(spoilerLivePreviewExtension);
+    spoilerDetails.createEl("summary", { text: "Spoiler appearance" });
+    const spoilerContent = spoilerDetails.createEl("div", {
+      cls: "discord-syntax-section-content"
+    });
+    const spoilerMsg = spoilerContent.createEl("div", {
+      cls: "discord-syntax-disabled-msg",
+      text: "Enable Spoilers syntax above to customize appearance."
+    });
+    const spoilerPreviewBox = spoilerContent.createEl("div", {
+      cls: "markdown-rendered markdown-preview-view discord-syntax-preview-box"
+    });
+    const spoilerP = spoilerPreviewBox.createEl("p", {
+      cls: "discord-syntax-preview-p"
+    });
+    spoilerP.createSpan({ text: "Preview: " });
+    const spoilerEl = spoilerP.createSpan({
+      cls: "discord-syntax-spoiler note-flow-spoiler discord-syntax-spoiler-single"
+    });
+    spoilerEl.setAttr("role", "button");
+    spoilerEl.setAttr("tabindex", "0");
+    spoilerEl.setAttr("aria-expanded", "false");
+    spoilerEl.setAttr("aria-label", "Spoiler, click to reveal");
+    const spoilerInner = spoilerEl.createSpan({
+      cls: "discord-syntax-spoiler-content",
+      text: "Hidden spoiler content"
+    });
+    spoilerInner.setAttr("aria-hidden", "true");
+    spoilerEl.addEventListener("mouseenter", () => {
+      spoilerEl.addClass("is-hovered");
+    });
+    spoilerEl.addEventListener("mouseleave", () => {
+      spoilerEl.removeClass("is-hovered");
+    });
+    const toggleSpoilerPreview = () => {
+      const isRevealed = spoilerEl.hasClass("is-revealed");
+      if (isRevealed) {
+        spoilerEl.removeClass("is-revealed");
+        spoilerEl.setAttr("aria-expanded", "false");
+        spoilerEl.setAttr("aria-label", "Spoiler, click to reveal");
+        spoilerInner.setAttr("aria-hidden", "true");
+      } else {
+        spoilerEl.addClass("is-revealed");
+        spoilerEl.setAttr("aria-expanded", "true");
+        spoilerEl.removeAttribute("aria-label");
+        spoilerInner.setAttr("aria-hidden", "false");
+      }
+    };
+    spoilerEl.addEventListener("click", toggleSpoilerPreview);
+    spoilerEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        toggleSpoilerPreview();
+      }
+    });
+    const spoilerSettingsList = [];
+    const hiddenColorSetting = new import_obsidian2.Setting(spoilerContent).setName("Hidden background color").setDesc("Background color of unrevealed spoilers.").addColorPicker(
+      (cp) => cp.setValue(this.plugin.settings.spoilerHiddenColor).onChange((val) => {
+        this.plugin.settings.spoilerHiddenColor = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    spoilerSettingsList.push(hiddenColorSetting);
+    const revealedColorSetting = new import_obsidian2.Setting(spoilerContent).setName("Revealed background color").setDesc("Background color of revealed or hovered spoilers.").addColorPicker(
+      (cp) => cp.setValue(this.plugin.settings.spoilerRevealedColor).onChange((val) => {
+        this.plugin.settings.spoilerRevealedColor = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    spoilerSettingsList.push(revealedColorSetting);
+    const textColorSetting = new import_obsidian2.Setting(spoilerContent).setName("Revealed text color").setDesc("Text color of revealed spoilers.").addColorPicker(
+      (cp) => cp.setValue(this.plugin.settings.spoilerTextColor).onChange((val) => {
+        this.plugin.settings.spoilerTextColor = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    spoilerSettingsList.push(textColorSetting);
+    const radiusSetting = new import_obsidian2.Setting(spoilerContent).setName("Corner radius (px)").setDesc("Border radius for spoiler caps (0 to 16px).").addSlider(
+      (slider) => slider.setLimits(0, 16, 1).setValue(this.plugin.settings.spoilerRadius).setDynamicTooltip().onChange((val) => {
+        this.plugin.settings.spoilerRadius = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    spoilerSettingsList.push(radiusSetting);
+    const paddingSetting = new import_obsidian2.Setting(spoilerContent).setName("Cap padding (px)").setDesc("Horizontal padding for outer spoiler edges (0 to 12px).").addSlider(
+      (slider) => slider.setLimits(0, 12, 1).setValue(this.plugin.settings.spoilerPadding).setDynamicTooltip().onChange((val) => {
+        this.plugin.settings.spoilerPadding = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    spoilerSettingsList.push(paddingSetting);
+    const subtextDetails = containerEl.createEl("details", {
+      cls: "discord-syntax-details"
+    });
+    subtextDetails.createEl("summary", { text: "Subtext appearance" });
+    const subtextContent = subtextDetails.createEl("div", {
+      cls: "discord-syntax-section-content"
+    });
+    const subtextMsg = subtextContent.createEl("div", {
+      cls: "discord-syntax-disabled-msg",
+      text: "Enable Subtext syntax above to customize appearance."
+    });
+    const subtextPreviewBox = subtextContent.createEl("div", {
+      cls: "markdown-rendered markdown-preview-view discord-syntax-preview-box"
+    });
+    const subtextP1 = subtextPreviewBox.createEl("p", {
+      cls: "discord-syntax-preview-p",
+      text: "This is a regular body text line in note."
+    });
+    subtextP1.style.margin = "0 0 6px 0";
+    const subtextP2 = subtextPreviewBox.createEl("p", {
+      cls: "discord-syntax-preview-p"
+    });
+    subtextP2.style.margin = "0";
+    subtextP2.createSpan({
+      cls: "discord-subtext",
+      text: "-# This is a secondary subtext line preview."
+    });
+    const subtextSettingsList = [];
+    const subtextColorSetting = new import_obsidian2.Setting(subtextContent).setName("Subtext color").setDesc("Text color for subtext items.").addColorPicker(
+      (cp) => cp.setValue(this.plugin.settings.subtextColor).onChange((val) => {
+        this.plugin.settings.subtextColor = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    subtextSettingsList.push(subtextColorSetting);
+    const subtextFontSizeSetting = new import_obsidian2.Setting(subtextContent).setName("Subtext font size (px)").setDesc("Font size for subtext items (8 to 24px).").addSlider(
+      (slider) => slider.setLimits(8, 24, 1).setValue(this.plugin.settings.subtextFontSize).setDynamicTooltip().onChange((val) => {
+        this.plugin.settings.subtextFontSize = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    subtextSettingsList.push(subtextFontSizeSetting);
+    const subtextOpacitySetting = new import_obsidian2.Setting(subtextContent).setName("Subtext opacity").setDesc("Opacity for subtext items (0.1 to 1.0).").addSlider(
+      (slider) => slider.setLimits(0.1, 1, 0.05).setValue(this.plugin.settings.subtextOpacity).setDynamicTooltip().onChange((val) => {
+        this.plugin.settings.subtextOpacity = val;
+        updateStyles();
+        void this.plugin.saveSettings();
+      })
+    );
+    subtextSettingsList.push(subtextOpacitySetting);
+    const advancedDetails = containerEl.createEl("details", {
+      cls: "discord-syntax-details"
+    });
+    advancedDetails.createEl("summary", { text: "Advanced" });
+    const advancedContent = advancedDetails.createEl("div", {
+      cls: "discord-syntax-section-content"
+    });
+    new import_obsidian2.Setting(advancedContent).setName("Reset appearance settings").setDesc(
+      "Reset colors, size, opacity, radius, and padding to default values. Syntax toggles are preserved."
+    ).addButton(
+      (btn) => btn.setButtonText("Reset to defaults").setWarning().onClick(() => {
+        this.plugin.settings = resetAppearanceSettings(
+          this.plugin.settings
+        );
+        updateStyles();
+        this.display();
+        void this.plugin.saveSettings();
+      })
+    );
+    const updateSections = () => {
+      const spoilersEnabled = this.plugin.settings.enableSpoilers;
+      if (!spoilersEnabled) {
+        spoilerDetails.removeAttribute("open");
+        spoilerDetails.addClass("is-disabled");
+        spoilerMsg.style.display = "block";
+        spoilerSettingsList.forEach((s) => {
+          s.setDisabled(true);
+        });
+      } else {
+        spoilerDetails.removeClass("is-disabled");
+        spoilerMsg.style.display = "none";
+        spoilerSettingsList.forEach((s) => {
+          s.setDisabled(false);
+        });
+      }
+      const subtextEnabled = this.plugin.settings.enableSubtext;
+      if (!subtextEnabled) {
+        subtextDetails.removeAttribute("open");
+        subtextDetails.addClass("is-disabled");
+        subtextMsg.style.display = "block";
+        subtextSettingsList.forEach((s) => {
+          s.setDisabled(true);
+        });
+      } else {
+        subtextDetails.removeClass("is-disabled");
+        subtextMsg.style.display = "none";
+        subtextSettingsList.forEach((s) => {
+          s.setDisabled(false);
+        });
+      }
+    };
+    updateSections();
+    updateStyles();
+  }
+};
+
+// src/style-manager.ts
+var STYLE_VARIABLE_KEYS = [
+  "--discord-spoiler-hidden-bg",
+  "--discord-spoiler-revealed-bg",
+  "--discord-spoiler-text-color",
+  "--discord-spoiler-radius",
+  "--discord-spoiler-padding",
+  "--discord-subtext-color",
+  "--discord-subtext-font-size",
+  "--discord-subtext-opacity"
+];
+var STYLE_CLASS_NAME = "discord-syntax-enabled";
+function serializeStyleVariables(settings) {
+  return {
+    "--discord-spoiler-hidden-bg": settings.spoilerHiddenColor,
+    "--discord-spoiler-revealed-bg": settings.spoilerRevealedColor,
+    "--discord-spoiler-text-color": settings.spoilerTextColor,
+    "--discord-spoiler-radius": `${settings.spoilerRadius}px`,
+    "--discord-spoiler-padding": `${settings.spoilerPadding}px`,
+    "--discord-subtext-color": settings.subtextColor,
+    "--discord-subtext-font-size": `${settings.subtextFontSize}px`,
+    "--discord-subtext-opacity": `${settings.subtextOpacity}`
+  };
+}
+function applyStyleVariables(settings, targetEl) {
+  if (!targetEl || !targetEl.style) return;
+  const vars = serializeStyleVariables(settings);
+  for (const [key, val] of Object.entries(vars)) {
+    targetEl.style.setProperty(key, val);
+  }
+  if (targetEl.classList) {
+    targetEl.classList.add(STYLE_CLASS_NAME);
+  }
+}
+function removeStyleVariables(targetEl) {
+  if (!targetEl || !targetEl.style) return;
+  for (const key of STYLE_VARIABLE_KEYS) {
+    targetEl.style.removeProperty(key);
+  }
+  if (targetEl.classList) {
+    targetEl.classList.remove(STYLE_CLASS_NAME);
+  }
+}
+
+// src/main.ts
+var DiscordSyntaxPlugin = class extends import_obsidian3.Plugin {
+  constructor() {
+    super(...arguments);
+    this.editorExtensions = [];
+    this.saveQueue = Promise.resolve();
+    this.styledBodies = /* @__PURE__ */ new Set();
+  }
+  async onload() {
+    await this.loadSettings();
+    this.applyStyles();
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => this.applyStyles())
+    );
+    this.registerEvent(
+      this.app.workspace.on("window-open", () => this.applyStyles())
+    );
+    this.registerMarkdownPostProcessor((element) => {
+      if (this.settings.enableSubtext) {
+        const selector = "p, li, .callout-content";
+        const targets = /* @__PURE__ */ new Set();
+        if (typeof element.matches === "function" && element.matches(selector)) {
+          targets.add(element);
+        }
+        const finder = element;
+        if (typeof finder.findAll === "function") {
+          const children = finder.findAll(selector);
+          for (let i = 0; i < children.length; i++) {
+            targets.add(children[i]);
+          }
+        }
+        for (const target of targets) {
+          processSubtextParagraph(target);
+        }
+      }
+      if (this.settings.enableSpoilers) {
+        processSpoilers(element);
+      }
+    });
+    this.editorExtensions.push(...getEnabledEditorExtensions(this.settings));
+    this.registerEditorExtension(this.editorExtensions);
+    this.addSettingTab(new DiscordSyntaxSettingTab(this.app, this));
     this.addCommand({
       id: "toggle-all-spoilers",
       name: "Toggle all spoilers in active note",
       callback: () => {
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
+        if (!this.settings.enableSpoilers) {
+          new import_obsidian3.Notice("Spoiler syntax is disabled in settings");
+          return;
+        }
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
         if (!activeView) return;
         const mode = activeView.getMode();
         if (mode === "preview") {
-          const container = activeView.previewMode?.containerEl;
+          const container = activeView.contentEl.find(".markdown-preview-view") ?? activeView.contentEl;
           if (!container) return;
           const spoilers = container.findAll(
             ".note-flow-spoiler, .discord-syntax-spoiler"
@@ -1164,10 +1596,9 @@ var DiscordSyntaxPlugin = class extends import_obsidian2.Plugin {
             }
           }
         } else if (mode === "source") {
-          const editor = activeView.editor;
-          const cm = editor.cm;
-          if (!cm || !(cm instanceof import_view3.EditorView) || typeof cm.dispatch !== "function")
-            return;
+          const cmEl = activeView.contentEl.find(".cm-editor");
+          const cm = cmEl ? import_view3.EditorView.findFromDOM(cmEl) : null;
+          if (!cm || typeof cm.dispatch !== "function") return;
           const state = cm.state;
           const text = state.doc.toString();
           const spoilers = findSpoilerRanges(text);
@@ -1206,6 +1637,63 @@ var DiscordSyntaxPlugin = class extends import_obsidian2.Plugin {
       }
     });
   }
+  async loadSettings() {
+    const loadedData = await this.loadData();
+    this.settings = normalizeSettings(loadedData);
+  }
+  async saveSettings() {
+    const queue = this.saveQueue.then(async () => {
+      await this.saveData(this.settings);
+    }).catch((err) => {
+      console.error("Discord Syntax: Failed to save settings", err);
+    });
+    this.saveQueue = queue;
+    return queue;
+  }
+  getTargetBodies() {
+    const bodies = /* @__PURE__ */ new Set();
+    if (typeof document !== "undefined" && document.body) {
+      bodies.add(document.body);
+    }
+    if (typeof activeDocument !== "undefined" && activeDocument.body) {
+      bodies.add(activeDocument.body);
+    }
+    if (this.app?.workspace?.containerEl?.ownerDocument?.body) {
+      bodies.add(this.app.workspace.containerEl.ownerDocument.body);
+    }
+    if (typeof this.app?.workspace?.iterateAllLeaves === "function") {
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        const body = leaf.view?.containerEl?.ownerDocument?.body;
+        if (body) {
+          bodies.add(body);
+        }
+      });
+    }
+    return Array.from(bodies);
+  }
+  applyStyles(extraTarget) {
+    const bodies = this.getTargetBodies();
+    if (extraTarget) {
+      bodies.push(extraTarget);
+    }
+    for (const body of bodies) {
+      this.styledBodies.add(body);
+      applyStyleVariables(this.settings, body);
+    }
+  }
+  rebuildEditorExtensions() {
+    this.editorExtensions.length = 0;
+    this.editorExtensions.push(...getEnabledEditorExtensions(this.settings));
+    this.app.workspace.updateOptions();
+  }
   onunload() {
+    const bodiesToClean = /* @__PURE__ */ new Set([
+      ...this.getTargetBodies(),
+      ...this.styledBodies
+    ]);
+    for (const body of bodiesToClean) {
+      removeStyleVariables(body);
+    }
+    this.styledBodies.clear();
   }
 };

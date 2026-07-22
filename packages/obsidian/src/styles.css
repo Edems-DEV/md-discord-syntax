@@ -3,8 +3,12 @@
 .markdown-preview-view .note-flow-spoiler,
 .markdown-preview-view .discord-syntax-spoiler,
 .markdown-source-view .note-flow-spoiler,
-.markdown-source-view .discord-syntax-spoiler {
-  background-color: var(--background-modifier-hover, #36393f);
+.markdown-source-view .discord-syntax-spoiler,
+.discord-syntax-spoiler {
+  background-color: var(
+    --discord-spoiler-hidden-bg,
+    var(--background-modifier-hover, #36393f)
+  );
   color: transparent;
   -webkit-text-fill-color: transparent;
   cursor: pointer;
@@ -31,10 +35,12 @@
 .markdown-source-view .note-flow-spoiler-start,
 .markdown-source-view .note-flow-spoiler-cap-left,
 .markdown-source-view .discord-syntax-spoiler-start,
-.markdown-source-view .discord-syntax-spoiler-cap-left {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-  padding-left: 4px;
+.markdown-source-view .discord-syntax-spoiler-cap-left,
+.discord-syntax-spoiler-cap-left,
+.discord-syntax-spoiler-start {
+  border-top-left-radius: var(--discord-spoiler-radius, 4px);
+  border-bottom-left-radius: var(--discord-spoiler-radius, 4px);
+  padding-left: var(--discord-spoiler-padding, 4px);
 }
 
 /* Outer Right Cap */
@@ -45,20 +51,23 @@
 .markdown-source-view .note-flow-spoiler-end,
 .markdown-source-view .note-flow-spoiler-cap-right,
 .markdown-source-view .discord-syntax-spoiler-end,
-.markdown-source-view .discord-syntax-spoiler-cap-right {
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-  padding-right: 4px;
+.markdown-source-view .discord-syntax-spoiler-cap-right,
+.discord-syntax-spoiler-cap-right,
+.discord-syntax-spoiler-end {
+  border-top-right-radius: var(--discord-spoiler-radius, 4px);
+  border-bottom-right-radius: var(--discord-spoiler-radius, 4px);
+  padding-right: var(--discord-spoiler-padding, 4px);
 }
 
 /* Single Fragment (both caps) */
 .markdown-preview-view .note-flow-spoiler-single,
 .markdown-preview-view .discord-syntax-spoiler-single,
 .markdown-source-view .note-flow-spoiler-single,
-.markdown-source-view .discord-syntax-spoiler-single {
-  border-radius: 4px;
-  padding-left: 4px;
-  padding-right: 4px;
+.markdown-source-view .discord-syntax-spoiler-single,
+.discord-syntax-spoiler-single {
+  border-radius: var(--discord-spoiler-radius, 4px);
+  padding-left: var(--discord-spoiler-padding, 4px);
+  padding-right: var(--discord-spoiler-padding, 4px);
 }
 
 /* Conceal nested formatting paint with scoped selectors. */
@@ -75,7 +84,9 @@
   .discord-syntax-spoiler:not(.is-hovered):not(.is-revealed),
 .markdown-source-view
   .discord-syntax-spoiler:not(.is-hovered):not(.is-revealed)
-  * {
+  *,
+.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed),
+.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed) * {
   color: transparent;
   -webkit-text-fill-color: transparent;
   text-decoration: none;
@@ -91,7 +102,8 @@
 .markdown-source-view .note-flow-spoiler:not(.is-hovered):not(.is-revealed) *,
 .markdown-source-view
   .discord-syntax-spoiler:not(.is-hovered):not(.is-revealed)
-  * {
+  *,
+.discord-syntax-spoiler:not(.is-hovered):not(.is-revealed) * {
   background-color: transparent;
   border: none;
   outline: none;
@@ -105,9 +117,14 @@
 .markdown-source-view .note-flow-spoiler.is-hovered,
 .markdown-source-view .note-flow-spoiler.is-revealed,
 .markdown-source-view .discord-syntax-spoiler.is-hovered,
-.markdown-source-view .discord-syntax-spoiler.is-revealed {
-  background-color: var(--background-modifier-active-hover, #4f545c);
-  color: var(--text-normal, #dcddde);
+.markdown-source-view .discord-syntax-spoiler.is-revealed,
+.discord-syntax-spoiler.is-hovered,
+.discord-syntax-spoiler.is-revealed {
+  background-color: var(
+    --discord-spoiler-revealed-bg,
+    var(--background-modifier-active-hover, #4f545c)
+  );
+  color: var(--discord-spoiler-text-color, var(--text-normal, #dcddde));
   -webkit-text-fill-color: initial;
 }
 
@@ -141,8 +158,11 @@
 /* Spoilers are always revealed in Source Mode */
 .markdown-source-view:not(.is-live-preview) .note-flow-spoiler,
 .markdown-source-view:not(.is-live-preview) .discord-syntax-spoiler {
-  background-color: var(--background-modifier-hover, #36393f);
-  color: var(--text-normal, #dcddde);
+  background-color: var(
+    --discord-spoiler-hidden-bg,
+    var(--background-modifier-hover, #36393f)
+  );
+  color: var(--discord-spoiler-text-color, var(--text-normal, #dcddde));
   -webkit-text-fill-color: initial;
 }
 
@@ -164,8 +184,9 @@
 /* ── Discord subtext (-# ) ──────────────────────────────────────────────── */
 
 .discord-subtext {
-  font-size: var(--font-smaller);
-  color: var(--text-muted);
+  font-size: var(--discord-subtext-font-size, var(--font-smaller));
+  color: var(--discord-subtext-color, var(--text-muted));
+  opacity: var(--discord-subtext-opacity, 1);
   display: inline;
 }
 
@@ -174,15 +195,57 @@
 }
 
 .markdown-source-view:not(.is-live-preview) .discord-subtext-marker {
-  font-size: var(--font-smaller);
-  color: var(--text-faint);
+  font-size: var(--discord-subtext-font-size, var(--font-smaller));
+  color: var(--discord-subtext-color, var(--text-faint));
   display: inline;
-  opacity: 0.6;
+  opacity: var(--discord-subtext-opacity, 0.6);
 }
 
 .discord-subtext-marker-active {
-  font-size: var(--font-smaller);
-  color: var(--text-faint);
+  font-size: var(--discord-subtext-font-size, var(--font-smaller));
+  color: var(--discord-subtext-color, var(--text-faint));
   display: inline;
-  opacity: 0.6;
+  opacity: var(--discord-subtext-opacity, 0.6);
+}
+
+/* Settings tab styling */
+.discord-syntax-details {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+
+  & > summary {
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &.is-disabled {
+    opacity: 0.65;
+  }
+}
+
+.discord-syntax-section-content {
+  margin-top: 10px;
+}
+
+.discord-syntax-disabled-msg {
+  font-style: italic;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.discord-syntax-preview-box {
+  background-color: var(--background-primary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.discord-syntax-preview-p {
+  margin: 0;
+  line-height: 1.5;
 }

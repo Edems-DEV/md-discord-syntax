@@ -19,7 +19,9 @@ import {
 } from "@edems-dev/md-discord-syntax-core";
 
 function getEditorLivePreviewField(): StateField<boolean> | null {
-  return typeof editorLivePreviewField !== "undefined" ? editorLivePreviewField : null;
+  return typeof editorLivePreviewField !== "undefined"
+    ? editorLivePreviewField
+    : null;
 }
 
 export { findSpoilerRanges, SpoilerRange };
