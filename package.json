@@ -23,7 +23,11 @@
     "changeset": "changeset",
     "version": "changeset version && npm run sync:versions",
     "release:check": "npm run build && npm test && npm run sync:versions && npm run validate",
-    "release:npm": "npm run release:check && changeset publish"
+    "release:npm": "npm run release:check && changeset publish",
+    "publish:all": "npm run release:npm",
+    "publish:core": "npm run release:check && npm publish -w @edems-dev/md-discord-syntax-core",
+    "publish:remark": "npm run release:check && npm publish -w @edems-dev/remark-discord-syntax",
+    "publish:obsidian": "npm run release:check"
   },
   "author": "Edems-DEV",
   "license": "GPL-3.0",
