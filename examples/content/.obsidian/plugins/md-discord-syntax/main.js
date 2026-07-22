@@ -415,6 +415,7 @@ function processSpoilers(element, doc = element.ownerDocument) {
 // src/spoiler-detector.ts
 var import_view = require("@codemirror/view");
 var import_state = require("@codemirror/state");
+var import_language = require("@codemirror/language");
 function getEditorLivePreviewField() {
   try {
     const obs = require("obsidian");
@@ -494,7 +495,7 @@ function getSpoilerAtSelection(state) {
 }
 function isRangeInCodeNode(state, from, to) {
   try {
-    const tree = syntaxTree(state);
+    const tree = (0, import_language.syntaxTree)(state);
     if (!tree) return false;
     let inCode = false;
     tree.iterate({
@@ -529,7 +530,7 @@ function getSpoilerFragments(state, contentFrom, contentTo, spoilerIndex = 0) {
     }
   }
   try {
-    const tree = syntaxTree(state);
+    const tree = (0, import_language.syntaxTree)(state);
     if (tree) {
       tree.iterate({
         from: contentFrom,
