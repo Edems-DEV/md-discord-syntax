@@ -1,18 +1,59 @@
-import { PluginSettingTab, Setting, App } from "obsidian";
+import {
+  PluginSettingTab,
+  Setting,
+  App,
+  ColorComponent,
+  SliderComponent,
+  Notice,
+} from "obsidian";
 import type DiscordSyntaxPlugin from "./main";
-import { resetAppearanceSettings } from "./settings";
+import {
+  DEFAULT_SETTINGS,
+  resetAppearanceSettings,
+  resetSingleAppearanceSetting,
+  resolveColorToHex,
+} from "./settings";
+
+function addSettingWithCssVar(
+  container: HTMLElement,
+  name: string,
+  descText: string,
+  cssVar: string,
+): Setting {
+  const setting = new Setting(container).setName(name);
+  setting.setDesc(descText + " CSS variable: ");
+  const codeEl = setting.descEl.createEl("code", {
+    text: cssVar,
+    cls: "discord-syntax-code-var",
+  });
+  codeEl.setAttr("title", `CSS variable: ${cssVar}`);
+  return setting;
+}
 
 export class DiscordSyntaxSettingTab extends PluginSettingTab {
   plugin: DiscordSyntaxPlugin;
+  private copyTimeoutId: number | null = null;
 
   constructor(app: App, plugin: DiscordSyntaxPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
 
+  override hide(): void {
+    if (this.copyTimeoutId !== null) {
+      window.clearTimeout(this.copyTimeoutId);
+      this.copyTimeoutId = null;
+    }
+    super.hide();
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    if (this.copyTimeoutId !== null) {
+      window.clearTimeout(this.copyTimeoutId);
+      this.copyTimeoutId = null;
+    }
 
     containerEl.createEl("h2", { text: "Discord Syntax Settings" });
 
@@ -122,48 +163,145 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
 
     const spoilerSettingsList: Setting[] = [];
 
-    const hiddenColorSetting = new Setting(spoilerContent)
-      .setName("Hidden background color")
-      .setDesc("Background color of unrevealed spoilers.")
-      .addColorPicker((cp) =>
-        cp.setValue(this.plugin.settings.spoilerHiddenColor).onChange((val) => {
+    // 1. Hidden background color
+    let hiddenColorPicker: ColorComponent | null = null;
+    const hiddenColorSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Hidden background color",
+      "Background color of unrevealed spoilers.",
+      "--discord-spoiler-hidden-bg",
+    )
+      .addColorPicker((cp) => {
+        hiddenColorPicker = cp;
+        cp.setValue(
+          resolveColorToHex(
+            this.plugin.settings.spoilerHiddenColor,
+            containerEl,
+          ),
+        ).onChange((val) => {
           this.plugin.settings.spoilerHiddenColor = val;
           updateStyles();
           void this.plugin.saveSettings();
-        }),
-      );
+        });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset hidden background color to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "spoilerHiddenColor",
+            );
+            updateStyles();
+            if (hiddenColorPicker) {
+              hiddenColorPicker.setValue(
+                resolveColorToHex(
+                  DEFAULT_SETTINGS.spoilerHiddenColor,
+                  containerEl,
+                ),
+              );
+            }
+            void this.plugin.saveSettings();
+          });
+      });
     spoilerSettingsList.push(hiddenColorSetting);
 
-    const revealedColorSetting = new Setting(spoilerContent)
-      .setName("Revealed background color")
-      .setDesc("Background color of revealed or hovered spoilers.")
-      .addColorPicker((cp) =>
-        cp
-          .setValue(this.plugin.settings.spoilerRevealedColor)
-          .onChange((val) => {
-            this.plugin.settings.spoilerRevealedColor = val;
+    // 2. Revealed background color
+    let revealedColorPicker: ColorComponent | null = null;
+    const revealedColorSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Revealed background color",
+      "Background color of revealed or hovered spoilers.",
+      "--discord-spoiler-revealed-bg",
+    )
+      .addColorPicker((cp) => {
+        revealedColorPicker = cp;
+        cp.setValue(
+          resolveColorToHex(
+            this.plugin.settings.spoilerRevealedColor,
+            containerEl,
+          ),
+        ).onChange((val) => {
+          this.plugin.settings.spoilerRevealedColor = val;
+          updateStyles();
+          void this.plugin.saveSettings();
+        });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset revealed background color to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "spoilerRevealedColor",
+            );
             updateStyles();
+            if (revealedColorPicker) {
+              revealedColorPicker.setValue(
+                resolveColorToHex(
+                  DEFAULT_SETTINGS.spoilerRevealedColor,
+                  containerEl,
+                ),
+              );
+            }
             void this.plugin.saveSettings();
-          }),
-      );
+          });
+      });
     spoilerSettingsList.push(revealedColorSetting);
 
-    const textColorSetting = new Setting(spoilerContent)
-      .setName("Revealed text color")
-      .setDesc("Text color of revealed spoilers.")
-      .addColorPicker((cp) =>
-        cp.setValue(this.plugin.settings.spoilerTextColor).onChange((val) => {
+    // 3. Revealed text color
+    let textColorPicker: ColorComponent | null = null;
+    const textColorSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Revealed text color",
+      "Text color of revealed spoilers.",
+      "--discord-spoiler-text-color",
+    )
+      .addColorPicker((cp) => {
+        textColorPicker = cp;
+        cp.setValue(
+          resolveColorToHex(this.plugin.settings.spoilerTextColor, containerEl),
+        ).onChange((val) => {
           this.plugin.settings.spoilerTextColor = val;
           updateStyles();
           void this.plugin.saveSettings();
-        }),
-      );
+        });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset revealed text color to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "spoilerTextColor",
+            );
+            updateStyles();
+            if (textColorPicker) {
+              textColorPicker.setValue(
+                resolveColorToHex(
+                  DEFAULT_SETTINGS.spoilerTextColor,
+                  containerEl,
+                ),
+              );
+            }
+            void this.plugin.saveSettings();
+          });
+      });
     spoilerSettingsList.push(textColorSetting);
 
-    const radiusSetting = new Setting(spoilerContent)
-      .setName("Corner radius (px)")
-      .setDesc("Border radius for spoiler caps (0 to 16px).")
-      .addSlider((slider) =>
+    // 4. Corner radius
+    let radiusSlider: SliderComponent | null = null;
+    const radiusSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Corner radius (px)",
+      "Border radius for spoiler caps (0 to 16px).",
+      "--discord-spoiler-radius",
+    )
+      .addSlider((slider) => {
+        radiusSlider = slider;
         slider
           .setLimits(0, 16, 1)
           .setValue(this.plugin.settings.spoilerRadius)
@@ -172,14 +310,36 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
             this.plugin.settings.spoilerRadius = val;
             updateStyles();
             void this.plugin.saveSettings();
-          }),
-      );
+          });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset corner radius to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "spoilerRadius",
+            );
+            updateStyles();
+            if (radiusSlider) {
+              radiusSlider.setValue(DEFAULT_SETTINGS.spoilerRadius);
+            }
+            void this.plugin.saveSettings();
+          });
+      });
     spoilerSettingsList.push(radiusSetting);
 
-    const paddingSetting = new Setting(spoilerContent)
-      .setName("Cap padding (px)")
-      .setDesc("Horizontal padding for outer spoiler edges (0 to 12px).")
-      .addSlider((slider) =>
+    // 5. Cap padding
+    let paddingSlider: SliderComponent | null = null;
+    const paddingSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Cap padding (px)",
+      "Horizontal padding for outer spoiler edges (0 to 12px).",
+      "--discord-spoiler-padding",
+    )
+      .addSlider((slider) => {
+        paddingSlider = slider;
         slider
           .setLimits(0, 12, 1)
           .setValue(this.plugin.settings.spoilerPadding)
@@ -188,8 +348,24 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
             this.plugin.settings.spoilerPadding = val;
             updateStyles();
             void this.plugin.saveSettings();
-          }),
-      );
+          });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset cap padding to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "spoilerPadding",
+            );
+            updateStyles();
+            if (paddingSlider) {
+              paddingSlider.setValue(DEFAULT_SETTINGS.spoilerPadding);
+            }
+            void this.plugin.saveSettings();
+          });
+      });
     spoilerSettingsList.push(paddingSetting);
 
     // ── 3. Subtext Appearance Section (<details>) ───────────────────────
@@ -227,22 +403,54 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
 
     const subtextSettingsList: Setting[] = [];
 
-    const subtextColorSetting = new Setting(subtextContent)
-      .setName("Subtext color")
-      .setDesc("Text color for subtext items.")
-      .addColorPicker((cp) =>
-        cp.setValue(this.plugin.settings.subtextColor).onChange((val) => {
+    // 6. Subtext color
+    let subtextColorPicker: ColorComponent | null = null;
+    const subtextColorSetting = addSettingWithCssVar(
+      subtextContent,
+      "Subtext color",
+      "Text color for subtext items.",
+      "--discord-subtext-color",
+    )
+      .addColorPicker((cp) => {
+        subtextColorPicker = cp;
+        cp.setValue(
+          resolveColorToHex(this.plugin.settings.subtextColor, containerEl),
+        ).onChange((val) => {
           this.plugin.settings.subtextColor = val;
           updateStyles();
           void this.plugin.saveSettings();
-        }),
-      );
+        });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset subtext color to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "subtextColor",
+            );
+            updateStyles();
+            if (subtextColorPicker) {
+              subtextColorPicker.setValue(
+                resolveColorToHex(DEFAULT_SETTINGS.subtextColor, containerEl),
+              );
+            }
+            void this.plugin.saveSettings();
+          });
+      });
     subtextSettingsList.push(subtextColorSetting);
 
-    const subtextFontSizeSetting = new Setting(subtextContent)
-      .setName("Subtext font size (px)")
-      .setDesc("Font size for subtext items (8 to 24px).")
-      .addSlider((slider) =>
+    // 7. Subtext font size
+    let subtextFontSizeSlider: SliderComponent | null = null;
+    const subtextFontSizeSetting = addSettingWithCssVar(
+      subtextContent,
+      "Subtext font size (px)",
+      "Font size for subtext items (8 to 24px).",
+      "--discord-subtext-font-size",
+    )
+      .addSlider((slider) => {
+        subtextFontSizeSlider = slider;
         slider
           .setLimits(8, 24, 1)
           .setValue(this.plugin.settings.subtextFontSize)
@@ -251,14 +459,36 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
             this.plugin.settings.subtextFontSize = val;
             updateStyles();
             void this.plugin.saveSettings();
-          }),
-      );
+          });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset subtext font size to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "subtextFontSize",
+            );
+            updateStyles();
+            if (subtextFontSizeSlider) {
+              subtextFontSizeSlider.setValue(DEFAULT_SETTINGS.subtextFontSize);
+            }
+            void this.plugin.saveSettings();
+          });
+      });
     subtextSettingsList.push(subtextFontSizeSetting);
 
-    const subtextOpacitySetting = new Setting(subtextContent)
-      .setName("Subtext opacity")
-      .setDesc("Opacity for subtext items (0.1 to 1.0).")
-      .addSlider((slider) =>
+    // 8. Subtext opacity
+    let subtextOpacitySlider: SliderComponent | null = null;
+    const subtextOpacitySetting = addSettingWithCssVar(
+      subtextContent,
+      "Subtext opacity",
+      "Opacity for subtext items (0.1 to 1.0).",
+      "--discord-subtext-opacity",
+    )
+      .addSlider((slider) => {
+        subtextOpacitySlider = slider;
         slider
           .setLimits(0.1, 1.0, 0.05)
           .setValue(this.plugin.settings.subtextOpacity)
@@ -267,8 +497,24 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
             this.plugin.settings.subtextOpacity = val;
             updateStyles();
             void this.plugin.saveSettings();
-          }),
-      );
+          });
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon("rotate-ccw")
+          .setTooltip("Reset subtext opacity to default")
+          .onClick(() => {
+            this.plugin.settings = resetSingleAppearanceSetting(
+              this.plugin.settings,
+              "subtextOpacity",
+            );
+            updateStyles();
+            if (subtextOpacitySlider) {
+              subtextOpacitySlider.setValue(DEFAULT_SETTINGS.subtextOpacity);
+            }
+            void this.plugin.saveSettings();
+          });
+      });
     subtextSettingsList.push(subtextOpacitySetting);
 
     // ── 4. Advanced Section (<details>) ──────────────────────────────────
@@ -297,6 +543,75 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
             this.display();
             void this.plugin.saveSettings();
           }),
+      );
+
+    // Custom CSS Guide in Advanced Section
+    const cssGuideEl = advancedContent.createEl("div", {
+      cls: "discord-syntax-css-guide",
+    });
+    cssGuideEl.style.marginTop = "16px";
+    cssGuideEl.style.paddingTop = "12px";
+    cssGuideEl.style.borderTop = "1px solid var(--background-modifier-border)";
+
+    cssGuideEl.createEl("h4", { text: "Custom CSS & Theme Customization" });
+    cssGuideEl.createEl("p", {
+      text: "The plugin sets inline CSS variables on document.body when custom settings are saved. To override these variables without !important, target element selectors directly (such as .discord-syntax-spoiler, .note-flow-spoiler, .discord-subtext, or .discord-subtext-marker).",
+    });
+
+    const exampleSnippet = `/* Custom CSS snippet for spoilers (covering main & alias classes) */
+.discord-syntax-spoiler,
+.note-flow-spoiler {
+  --discord-spoiler-hidden-bg: #2b2d31;
+  --discord-spoiler-revealed-bg: #404249;
+  --discord-spoiler-text-color: #f2f3f5;
+  --discord-spoiler-radius: 6px;
+  --discord-spoiler-padding: 4px;
+}
+
+/* Custom CSS snippet for subtext and subtext markers */
+.discord-subtext,
+.discord-subtext-marker,
+.discord-subtext-marker-active {
+  --discord-subtext-color: #949ba4;
+  --discord-subtext-font-size: 12px;
+  --discord-subtext-opacity: 0.8;
+}`;
+
+    const codePre = cssGuideEl.createEl("pre", {
+      cls: "discord-syntax-code-block",
+    });
+    codePre.style.padding = "10px";
+    codePre.style.borderRadius = "4px";
+    codePre.style.backgroundColor = "var(--background-primary-alt)";
+    codePre.style.overflowX = "auto";
+    codePre.createEl("code", { text: exampleSnippet });
+
+    new Setting(cssGuideEl)
+      .setName("Copy example CSS snippet")
+      .setDesc(
+        "Copy standard CSS snippet for theme customization to clipboard.",
+      )
+      .addButton((btn) =>
+        btn.setButtonText("Copy snippet").onClick(() => {
+          const doCopy = async () => {
+            try {
+              await navigator.clipboard.writeText(exampleSnippet);
+              btn.setButtonText("Copied!");
+              if (this.copyTimeoutId !== null) {
+                window.clearTimeout(this.copyTimeoutId);
+              }
+              this.copyTimeoutId = window.setTimeout(() => {
+                this.copyTimeoutId = null;
+                if (btn.buttonEl && btn.buttonEl.isConnected) {
+                  btn.setButtonText("Copy snippet");
+                }
+              }, 2000);
+            } catch {
+              new Notice("Failed to copy CSS snippet to clipboard.");
+            }
+          };
+          void doCopy();
+        }),
       );
 
     // ── 5. Enablement & Section State Manager ────────────────────────────

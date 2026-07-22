@@ -2,8 +2,12 @@ import test from "node:test";
 import assert from "node:assert";
 import {
   DEFAULT_SETTINGS,
+  DiscordSyntaxSettings,
+  PropertyResolver,
   normalizeSettings,
   resetAppearanceSettings,
+  resetSingleAppearanceSetting,
+  resolveColorToHex,
   getEnabledEditorExtensions,
 } from "../src/settings.js";
 import {
@@ -111,6 +115,146 @@ void test("Appearance Reset Helper", async (t) => {
         DEFAULT_SETTINGS.subtextFontSize,
       );
       assert.strictEqual(reset.subtextOpacity, DEFAULT_SETTINGS.subtextOpacity);
+    },
+  );
+});
+
+void test("Individual Field Reset Helper", async (t) => {
+  const customSettings: DiscordSyntaxSettings = {
+    enableSpoilers: false,
+    enableSubtext: false,
+    spoilerHiddenColor: "#111111",
+    spoilerRevealedColor: "#222222",
+    spoilerTextColor: "#333333",
+    spoilerRadius: 10,
+    spoilerPadding: 8,
+    subtextColor: "#444444",
+    subtextFontSize: 18,
+    subtextOpacity: 0.5,
+  };
+
+  const appearanceKeys: (keyof DiscordSyntaxSettings)[] = [
+    "spoilerHiddenColor",
+    "spoilerRevealedColor",
+    "spoilerTextColor",
+    "spoilerRadius",
+    "spoilerPadding",
+    "subtextColor",
+    "subtextFontSize",
+    "subtextOpacity",
+  ];
+
+  for (const targetKey of appearanceKeys) {
+    await t.test(
+      `resets only ${targetKey} leaving all other fields untouched`,
+      () => {
+        const resetResult = resetSingleAppearanceSetting(
+          customSettings,
+          targetKey,
+        );
+
+        assert.strictEqual(resetResult[targetKey], DEFAULT_SETTINGS[targetKey]);
+
+        for (const k of Object.keys(
+          customSettings,
+        ) as (keyof DiscordSyntaxSettings)[]) {
+          if (k !== targetKey) {
+            assert.strictEqual(
+              resetResult[k],
+              customSettings[k],
+              `Field ${k} should remain unchanged when resetting ${targetKey}`,
+            );
+          }
+        }
+      },
+    );
+  }
+
+  await t.test("does not change syntax enable toggles if requested", () => {
+    const r1 = resetSingleAppearanceSetting(customSettings, "enableSpoilers");
+    assert.deepStrictEqual(r1, customSettings);
+
+    const r2 = resetSingleAppearanceSetting(customSettings, "enableSubtext");
+    assert.deepStrictEqual(r2, customSettings);
+  });
+});
+
+void test("resolveColorToHex Helper", async (t) => {
+  await t.test("returns 6-digit hex as-is lowercased", () => {
+    assert.strictEqual(resolveColorToHex("#AABBCC"), "#aabbcc");
+  });
+
+  await t.test("expands 3-digit hex to 6-digit hex", () => {
+    assert.strictEqual(resolveColorToHex("#123"), "#112233");
+  });
+
+  await t.test(
+    "extracts fallback hex from var() string when resolver is empty",
+    () => {
+      assert.strictEqual(
+        resolveColorToHex("var(--background-modifier-hover, #36393f)"),
+        "#36393f",
+      );
+      assert.strictEqual(
+        resolveColorToHex("var(--text-normal, #dcddde)"),
+        "#dcddde",
+      );
+    },
+  );
+
+  await t.test(
+    "resolves CSS custom properties from PropertyResolver if present",
+    () => {
+      const mockResolver: PropertyResolver = {
+        getPropertyValue(propName: string): string {
+          if (propName === "--background-modifier-hover") {
+            return "rgb(79, 84, 92)";
+          }
+          if (propName === "--text-muted") {
+            return "#123456";
+          }
+          return "";
+        },
+      };
+
+      assert.strictEqual(
+        resolveColorToHex(
+          "var(--background-modifier-hover, #36393f)",
+          mockResolver,
+        ),
+        "#4f545c",
+      );
+
+      assert.strictEqual(
+        resolveColorToHex("var(--text-muted, #72767d)", mockResolver),
+        "#123456",
+      );
+    },
+  );
+
+  await t.test(
+    "handles recursive var() resolution with PropertyResolver",
+    () => {
+      const mockResolver: PropertyResolver = {
+        getPropertyValue(propName: string): string {
+          if (propName === "--var-a") return "var(--var-b)";
+          if (propName === "--var-b") return "#abcdef";
+          return "";
+        },
+      };
+
+      assert.strictEqual(
+        resolveColorToHex("var(--var-a, #000000)", mockResolver),
+        "#abcdef",
+      );
+    },
+  );
+
+  await t.test(
+    "returns black fallback for empty or unresolvable values",
+    () => {
+      assert.strictEqual(resolveColorToHex(""), "#000000");
+      assert.strictEqual(resolveColorToHex("invalid-color"), "#000000");
     },
   );
 });
@@ -277,6 +421,63 @@ void test("Style Manager Apply & Remove", async (t) => {
       assert.strictEqual(helpers._classes.has(STYLE_CLASS_NAME), false);
       assert.strictEqual(helpers._styles.get("--custom-user-var"), "100px");
       assert.ok(helpers._classes.has("custom-user-class"));
+    },
+  );
+
+  await t.test(
+    "resets single appearance field styles on target element without altering other custom variables",
+    () => {
+      const mockEl = createMockElement();
+      let customSettings: DiscordSyntaxSettings = {
+        enableSpoilers: true,
+        enableSubtext: true,
+        spoilerHiddenColor: "#111111",
+        spoilerRevealedColor: "#222222",
+        spoilerTextColor: "#333333",
+        spoilerRadius: 12,
+        spoilerPadding: 8,
+        subtextColor: "#444444",
+        subtextFontSize: 18,
+        subtextOpacity: 0.9,
+      };
+
+      applyStyleVariables(customSettings, mockEl);
+
+      const helpers = mockEl as unknown as {
+        _styles: Map<string, string>;
+      };
+
+      assert.strictEqual(
+        helpers._styles.get("--discord-spoiler-radius"),
+        "12px",
+      );
+      assert.strictEqual(
+        helpers._styles.get("--discord-spoiler-padding"),
+        "8px",
+      );
+
+      // Reset only spoilerRadius
+      customSettings = resetSingleAppearanceSetting(
+        customSettings,
+        "spoilerRadius",
+      );
+      applyStyleVariables(customSettings, mockEl);
+
+      // spoilerRadius should now equal DEFAULT_SETTINGS.spoilerRadius (4px)
+      assert.strictEqual(
+        helpers._styles.get("--discord-spoiler-radius"),
+        "4px",
+      );
+      // spoilerPadding should remain 8px
+      assert.strictEqual(
+        helpers._styles.get("--discord-spoiler-padding"),
+        "8px",
+      );
+      // spoilerHiddenColor should remain #111111
+      assert.strictEqual(
+        helpers._styles.get("--discord-spoiler-hidden-bg"),
+        "#111111",
+      );
     },
   );
 });

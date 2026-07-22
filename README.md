@@ -86,6 +86,69 @@ This is a ||spoiler|| block.
 
 ---
 
+## Custom CSS / Theme Authors
+
+The Obsidian plugin exposes clean CSS custom properties and classes so theme authors and CSS snippet users can customize the appearance of spoilers and subtext across Reading View and Live Preview.
+
+### CSS Custom Properties & Defaults
+
+| Custom Property                 | Target Component                      | Default Value                                      | Purpose                                                    |
+| ------------------------------- | ------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| `--discord-spoiler-hidden-bg`   | `.discord-syntax-spoiler`             | `var(--background-modifier-hover, #36393f)`        | Background color of unrevealed spoilers                    |
+| `--discord-spoiler-revealed-bg` | `.discord-syntax-spoiler.is-revealed` | `var(--background-modifier-active-hover, #4f545c)` | Background color of revealed or hovered spoilers           |
+| `--discord-spoiler-text-color`  | `.discord-syntax-spoiler.is-revealed` | `var(--text-normal, #dcddde)`                      | Text color of revealed spoilers                            |
+| `--discord-spoiler-radius`      | Outer cap elements                    | `4px`                                              | Border radius for spoiler caps (`0` to `16px`)             |
+| `--discord-spoiler-padding`     | Outer cap elements                    | `4px`                                              | Horizontal padding for outer spoiler edges (`0` to `12px`) |
+| `--discord-subtext-color`       | `.discord-subtext`                    | `var(--text-muted, #72767d)`                       | Text color for subtext elements                            |
+| `--discord-subtext-font-size`   | `.discord-subtext`                    | `12px`                                             | Font size for subtext items (`8px` to `24px`)              |
+| `--discord-subtext-opacity`     | `.discord-subtext`                    | `0.75`                                             | Opacity for subtext items (`0.1` to `1.0`)                 |
+
+### Selectors & Class Reference
+
+- `.discord-syntax-enabled`: Added to active document `body` elements whenever the plugin is active.
+- `.discord-syntax-spoiler` (alias: `.note-flow-spoiler`): Core inline spoiler element.
+- Outer cap classes:
+  - `.discord-syntax-spoiler-start` / `.discord-syntax-spoiler-cap-left`: Left spoiler edge cap.
+  - `.discord-syntax-spoiler-end` / `.discord-syntax-spoiler-cap-right`: Right spoiler edge cap.
+  - `.discord-syntax-spoiler-single`: Single-line spoiler fragment (has both left and right caps).
+- Interactive state classes:
+  - `.is-hovered`: Applied when pointer hovers over a spoiler fragment.
+  - `.is-revealed`: Applied when a spoiler is clicked/toggled open.
+- Subtext classes:
+  - `.discord-subtext`: Styled subtext span in Reading View and Live Preview.
+  - `.discord-subtext-marker`, `.discord-subtext-marker-active`: Source Mode / Live Preview subtext prefix markers (`-# `).
+
+### Cascade Mechanics & Theme Overrides
+
+When configured in Obsidian Settings, the plugin applies custom CSS properties directly as inline styles on `document.body` (which receives the `.discord-syntax-enabled` class when active).
+
+Because inline element styles on `body` take precedence over external stylesheet rules targeting `body` or `.discord-syntax-enabled`, CSS rules on `.discord-syntax-enabled` will not override plugin-selected values.
+
+To override default or plugin-selected variables without `!important`, theme authors and CSS snippet users must target descendant element selectors directly (such as `.discord-syntax-spoiler`, `.note-flow-spoiler`, `.discord-subtext`, and `.discord-subtext-marker`). Declarations established on these target elements override inherited `body` values in the cascade:
+
+```css
+/* Custom CSS snippet for spoilers (covering main & alias classes) */
+.discord-syntax-spoiler,
+.note-flow-spoiler {
+  --discord-spoiler-hidden-bg: #2b2d31;
+  --discord-spoiler-revealed-bg: #404249;
+  --discord-spoiler-text-color: #f2f3f5;
+  --discord-spoiler-radius: 6px;
+  --discord-spoiler-padding: 4px;
+}
+
+/* Custom CSS snippet for subtext and subtext markers */
+.discord-subtext,
+.discord-subtext-marker,
+.discord-subtext-marker-active {
+  --discord-subtext-color: #949ba4;
+  --discord-subtext-font-size: 12px;
+  --discord-subtext-opacity: 0.8;
+}
+```
+
+---
+
 ## Monorepo Development
 
 ```bash

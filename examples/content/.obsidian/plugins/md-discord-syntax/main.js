@@ -1118,15 +1118,168 @@ function buildDecorations(view) {
 var DEFAULT_SETTINGS = {
   enableSpoilers: true,
   enableSubtext: true,
-  spoilerHiddenColor: "#36393f",
-  spoilerRevealedColor: "#4f545c",
-  spoilerTextColor: "#dcddde",
+  spoilerHiddenColor: "var(--background-modifier-hover, #36393f)",
+  spoilerRevealedColor: "var(--background-modifier-active-hover, #4f545c)",
+  spoilerTextColor: "var(--text-normal, #dcddde)",
   spoilerRadius: 4,
   spoilerPadding: 4,
-  subtextColor: "#72767d",
+  subtextColor: "var(--text-muted, #72767d)",
   subtextFontSize: 12,
   subtextOpacity: 0.75
 };
+function isPropertyResolver(obj) {
+  return typeof obj === "object" && obj !== null && "getPropertyValue" in obj && typeof obj.getPropertyValue === "function";
+}
+function getPropertyResolver(targetEl) {
+  if (!targetEl) {
+    if (typeof window !== "undefined" && typeof window.getComputedStyle === "function") {
+      const doc = window.document;
+      const el = doc?.body ?? doc?.documentElement;
+      if (el) {
+        try {
+          return window.getComputedStyle(el);
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+  if (isPropertyResolver(targetEl)) {
+    return targetEl;
+  }
+  if (typeof targetEl === "object" && "ownerDocument" in targetEl) {
+    const ownerDoc = targetEl.ownerDocument;
+    const win = ownerDoc?.defaultView ?? (typeof window !== "undefined" ? window : null);
+    if (win && typeof win.getComputedStyle === "function") {
+      try {
+        return win.getComputedStyle(targetEl);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+function parseVarExpression(expr) {
+  const trimmed = expr.trim();
+  if (!trimmed.startsWith("var(") || !trimmed.endsWith(")")) {
+    return null;
+  }
+  const inner = trimmed.slice(4, -1).trim();
+  const firstComma = inner.indexOf(",");
+  if (firstComma === -1) {
+    const varName2 = inner.trim();
+    if (/^--[a-zA-Z0-9_-]+$/.test(varName2)) {
+      return { varName: varName2 };
+    }
+    return null;
+  }
+  const varName = inner.slice(0, firstComma).trim();
+  const fallback = inner.slice(firstComma + 1).trim();
+  if (/^--[a-zA-Z0-9_-]+$/.test(varName)) {
+    return { varName, fallback };
+  }
+  return null;
+}
+function resolveVarExpression(expr, resolver, depth = 0) {
+  if (depth > 10) return expr;
+  const parsed = parseVarExpression(expr);
+  if (!parsed) {
+    return expr.trim();
+  }
+  if (resolver) {
+    const cssValue = resolver.getPropertyValue(parsed.varName).trim();
+    if (cssValue) {
+      return resolveVarExpression(cssValue, resolver, depth + 1);
+    }
+  }
+  if (parsed.fallback !== void 0) {
+    return resolveVarExpression(parsed.fallback, resolver, depth + 1);
+  }
+  return expr.trim();
+}
+function hslToHex(h, s, l) {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(h / 60 % 2 - 1));
+  const m = l - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (0 <= h && h < 60) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (60 <= h && h < 120) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (240 <= h && h < 300) {
+    r = x;
+    g = 0;
+    b = c;
+  } else if (300 <= h && h < 360) {
+    r = c;
+    g = 0;
+    b = x;
+  }
+  const rHex = Math.round((r + m) * 255).toString(16).padStart(2, "0");
+  const gHex = Math.round((g + m) * 255).toString(16).padStart(2, "0");
+  const bHex = Math.round((b + m) * 255).toString(16).padStart(2, "0");
+  return `#${rHex}${gHex}${bHex}`;
+}
+function parseColorToHex(str) {
+  const trimmed = str.trim();
+  const hex6 = trimmed.match(/^#([0-9a-fA-F]{6})$/);
+  if (hex6) {
+    return `#${hex6[1].toLowerCase()}`;
+  }
+  const hex3 = trimmed.match(/^#([0-9a-fA-F]{3})$/);
+  if (hex3) {
+    const [, h] = hex3;
+    return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`.toLowerCase();
+  }
+  const rgbMatch = trimmed.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgbMatch) {
+    const r = Math.min(255, Math.max(0, parseInt(rgbMatch[1], 10))).toString(16).padStart(2, "0");
+    const g = Math.min(255, Math.max(0, parseInt(rgbMatch[2], 10))).toString(16).padStart(2, "0");
+    const b = Math.min(255, Math.max(0, parseInt(rgbMatch[3], 10))).toString(16).padStart(2, "0");
+    return `#${r}${g}${b}`;
+  }
+  const hslMatch = trimmed.match(
+    /^hsla?\(\s*(\d+(?:\.\d+)?)(?:deg)?\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%/i
+  );
+  if (hslMatch) {
+    const h = (parseFloat(hslMatch[1]) % 360 + 360) % 360;
+    const s = Math.min(1, Math.max(0, parseFloat(hslMatch[2]) / 100));
+    const l = Math.min(1, Math.max(0, parseFloat(hslMatch[3]) / 100));
+    return hslToHex(h, s, l);
+  }
+  const hexInStr = trimmed.match(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})/);
+  if (hexInStr) {
+    const raw = hexInStr[0];
+    if (raw.length === 4) {
+      return `#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`.toLowerCase();
+    }
+    return raw.toLowerCase();
+  }
+  return null;
+}
+function resolveColorToHex(colorStr, targetEl) {
+  if (!colorStr) return "#000000";
+  const resolver = getPropertyResolver(targetEl);
+  const resolvedExpr = resolveVarExpression(colorStr, resolver);
+  const hex = parseColorToHex(resolvedExpr);
+  return hex ?? "#000000";
+}
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -1218,6 +1371,15 @@ function resetAppearanceSettings(settings) {
     subtextOpacity: DEFAULT_SETTINGS.subtextOpacity
   };
 }
+function resetSingleAppearanceSetting(settings, key) {
+  if (key === "enableSpoilers" || key === "enableSubtext") {
+    return { ...settings };
+  }
+  return {
+    ...settings,
+    [key]: DEFAULT_SETTINGS[key]
+  };
+}
 function getEnabledEditorExtensions(settings) {
   const extensions = [];
   if (settings.enableSubtext) {
@@ -1231,14 +1393,36 @@ function getEnabledEditorExtensions(settings) {
 
 // src/settings-tab.ts
 var import_obsidian2 = require("obsidian");
+function addSettingWithCssVar(container, name, descText, cssVar) {
+  const setting = new import_obsidian2.Setting(container).setName(name);
+  setting.setDesc(descText + " CSS variable: ");
+  const codeEl = setting.descEl.createEl("code", {
+    text: cssVar,
+    cls: "discord-syntax-code-var"
+  });
+  codeEl.setAttr("title", `CSS variable: ${cssVar}`);
+  return setting;
+}
 var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
+    this.copyTimeoutId = null;
     this.plugin = plugin;
+  }
+  hide() {
+    if (this.copyTimeoutId !== null) {
+      window.clearTimeout(this.copyTimeoutId);
+      this.copyTimeoutId = null;
+    }
+    super.hide();
   }
   display() {
     const { containerEl } = this;
     containerEl.empty();
+    if (this.copyTimeoutId !== null) {
+      window.clearTimeout(this.copyTimeoutId);
+      this.copyTimeoutId = null;
+    }
     containerEl.createEl("h2", { text: "Discord Syntax Settings" });
     const updateStyles = () => {
       const settingsBody = containerEl.ownerDocument?.body;
@@ -1320,45 +1504,167 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
       }
     });
     const spoilerSettingsList = [];
-    const hiddenColorSetting = new import_obsidian2.Setting(spoilerContent).setName("Hidden background color").setDesc("Background color of unrevealed spoilers.").addColorPicker(
-      (cp) => cp.setValue(this.plugin.settings.spoilerHiddenColor).onChange((val) => {
+    let hiddenColorPicker = null;
+    const hiddenColorSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Hidden background color",
+      "Background color of unrevealed spoilers.",
+      "--discord-spoiler-hidden-bg"
+    ).addColorPicker((cp) => {
+      hiddenColorPicker = cp;
+      cp.setValue(
+        resolveColorToHex(
+          this.plugin.settings.spoilerHiddenColor,
+          containerEl
+        )
+      ).onChange((val) => {
         this.plugin.settings.spoilerHiddenColor = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset hidden background color to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "spoilerHiddenColor"
+        );
+        updateStyles();
+        if (hiddenColorPicker) {
+          hiddenColorPicker.setValue(
+            resolveColorToHex(
+              DEFAULT_SETTINGS.spoilerHiddenColor,
+              containerEl
+            )
+          );
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     spoilerSettingsList.push(hiddenColorSetting);
-    const revealedColorSetting = new import_obsidian2.Setting(spoilerContent).setName("Revealed background color").setDesc("Background color of revealed or hovered spoilers.").addColorPicker(
-      (cp) => cp.setValue(this.plugin.settings.spoilerRevealedColor).onChange((val) => {
+    let revealedColorPicker = null;
+    const revealedColorSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Revealed background color",
+      "Background color of revealed or hovered spoilers.",
+      "--discord-spoiler-revealed-bg"
+    ).addColorPicker((cp) => {
+      revealedColorPicker = cp;
+      cp.setValue(
+        resolveColorToHex(
+          this.plugin.settings.spoilerRevealedColor,
+          containerEl
+        )
+      ).onChange((val) => {
         this.plugin.settings.spoilerRevealedColor = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset revealed background color to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "spoilerRevealedColor"
+        );
+        updateStyles();
+        if (revealedColorPicker) {
+          revealedColorPicker.setValue(
+            resolveColorToHex(
+              DEFAULT_SETTINGS.spoilerRevealedColor,
+              containerEl
+            )
+          );
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     spoilerSettingsList.push(revealedColorSetting);
-    const textColorSetting = new import_obsidian2.Setting(spoilerContent).setName("Revealed text color").setDesc("Text color of revealed spoilers.").addColorPicker(
-      (cp) => cp.setValue(this.plugin.settings.spoilerTextColor).onChange((val) => {
+    let textColorPicker = null;
+    const textColorSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Revealed text color",
+      "Text color of revealed spoilers.",
+      "--discord-spoiler-text-color"
+    ).addColorPicker((cp) => {
+      textColorPicker = cp;
+      cp.setValue(
+        resolveColorToHex(this.plugin.settings.spoilerTextColor, containerEl)
+      ).onChange((val) => {
         this.plugin.settings.spoilerTextColor = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset revealed text color to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "spoilerTextColor"
+        );
+        updateStyles();
+        if (textColorPicker) {
+          textColorPicker.setValue(
+            resolveColorToHex(
+              DEFAULT_SETTINGS.spoilerTextColor,
+              containerEl
+            )
+          );
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     spoilerSettingsList.push(textColorSetting);
-    const radiusSetting = new import_obsidian2.Setting(spoilerContent).setName("Corner radius (px)").setDesc("Border radius for spoiler caps (0 to 16px).").addSlider(
-      (slider) => slider.setLimits(0, 16, 1).setValue(this.plugin.settings.spoilerRadius).setDynamicTooltip().onChange((val) => {
+    let radiusSlider = null;
+    const radiusSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Corner radius (px)",
+      "Border radius for spoiler caps (0 to 16px).",
+      "--discord-spoiler-radius"
+    ).addSlider((slider) => {
+      radiusSlider = slider;
+      slider.setLimits(0, 16, 1).setValue(this.plugin.settings.spoilerRadius).setDynamicTooltip().onChange((val) => {
         this.plugin.settings.spoilerRadius = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset corner radius to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "spoilerRadius"
+        );
+        updateStyles();
+        if (radiusSlider) {
+          radiusSlider.setValue(DEFAULT_SETTINGS.spoilerRadius);
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     spoilerSettingsList.push(radiusSetting);
-    const paddingSetting = new import_obsidian2.Setting(spoilerContent).setName("Cap padding (px)").setDesc("Horizontal padding for outer spoiler edges (0 to 12px).").addSlider(
-      (slider) => slider.setLimits(0, 12, 1).setValue(this.plugin.settings.spoilerPadding).setDynamicTooltip().onChange((val) => {
+    let paddingSlider = null;
+    const paddingSetting = addSettingWithCssVar(
+      spoilerContent,
+      "Cap padding (px)",
+      "Horizontal padding for outer spoiler edges (0 to 12px).",
+      "--discord-spoiler-padding"
+    ).addSlider((slider) => {
+      paddingSlider = slider;
+      slider.setLimits(0, 12, 1).setValue(this.plugin.settings.spoilerPadding).setDynamicTooltip().onChange((val) => {
         this.plugin.settings.spoilerPadding = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset cap padding to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "spoilerPadding"
+        );
+        updateStyles();
+        if (paddingSlider) {
+          paddingSlider.setValue(DEFAULT_SETTINGS.spoilerPadding);
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     spoilerSettingsList.push(paddingSetting);
     const subtextDetails = containerEl.createEl("details", {
       cls: "discord-syntax-details"
@@ -1388,29 +1694,90 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
       text: "-# This is a secondary subtext line preview."
     });
     const subtextSettingsList = [];
-    const subtextColorSetting = new import_obsidian2.Setting(subtextContent).setName("Subtext color").setDesc("Text color for subtext items.").addColorPicker(
-      (cp) => cp.setValue(this.plugin.settings.subtextColor).onChange((val) => {
+    let subtextColorPicker = null;
+    const subtextColorSetting = addSettingWithCssVar(
+      subtextContent,
+      "Subtext color",
+      "Text color for subtext items.",
+      "--discord-subtext-color"
+    ).addColorPicker((cp) => {
+      subtextColorPicker = cp;
+      cp.setValue(
+        resolveColorToHex(this.plugin.settings.subtextColor, containerEl)
+      ).onChange((val) => {
         this.plugin.settings.subtextColor = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset subtext color to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "subtextColor"
+        );
+        updateStyles();
+        if (subtextColorPicker) {
+          subtextColorPicker.setValue(
+            resolveColorToHex(DEFAULT_SETTINGS.subtextColor, containerEl)
+          );
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     subtextSettingsList.push(subtextColorSetting);
-    const subtextFontSizeSetting = new import_obsidian2.Setting(subtextContent).setName("Subtext font size (px)").setDesc("Font size for subtext items (8 to 24px).").addSlider(
-      (slider) => slider.setLimits(8, 24, 1).setValue(this.plugin.settings.subtextFontSize).setDynamicTooltip().onChange((val) => {
+    let subtextFontSizeSlider = null;
+    const subtextFontSizeSetting = addSettingWithCssVar(
+      subtextContent,
+      "Subtext font size (px)",
+      "Font size for subtext items (8 to 24px).",
+      "--discord-subtext-font-size"
+    ).addSlider((slider) => {
+      subtextFontSizeSlider = slider;
+      slider.setLimits(8, 24, 1).setValue(this.plugin.settings.subtextFontSize).setDynamicTooltip().onChange((val) => {
         this.plugin.settings.subtextFontSize = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset subtext font size to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "subtextFontSize"
+        );
+        updateStyles();
+        if (subtextFontSizeSlider) {
+          subtextFontSizeSlider.setValue(DEFAULT_SETTINGS.subtextFontSize);
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     subtextSettingsList.push(subtextFontSizeSetting);
-    const subtextOpacitySetting = new import_obsidian2.Setting(subtextContent).setName("Subtext opacity").setDesc("Opacity for subtext items (0.1 to 1.0).").addSlider(
-      (slider) => slider.setLimits(0.1, 1, 0.05).setValue(this.plugin.settings.subtextOpacity).setDynamicTooltip().onChange((val) => {
+    let subtextOpacitySlider = null;
+    const subtextOpacitySetting = addSettingWithCssVar(
+      subtextContent,
+      "Subtext opacity",
+      "Opacity for subtext items (0.1 to 1.0).",
+      "--discord-subtext-opacity"
+    ).addSlider((slider) => {
+      subtextOpacitySlider = slider;
+      slider.setLimits(0.1, 1, 0.05).setValue(this.plugin.settings.subtextOpacity).setDynamicTooltip().onChange((val) => {
         this.plugin.settings.subtextOpacity = val;
         updateStyles();
         void this.plugin.saveSettings();
-      })
-    );
+      });
+    }).addExtraButton((btn) => {
+      btn.setIcon("rotate-ccw").setTooltip("Reset subtext opacity to default").onClick(() => {
+        this.plugin.settings = resetSingleAppearanceSetting(
+          this.plugin.settings,
+          "subtextOpacity"
+        );
+        updateStyles();
+        if (subtextOpacitySlider) {
+          subtextOpacitySlider.setValue(DEFAULT_SETTINGS.subtextOpacity);
+        }
+        void this.plugin.saveSettings();
+      });
+    });
     subtextSettingsList.push(subtextOpacitySetting);
     const advancedDetails = containerEl.createEl("details", {
       cls: "discord-syntax-details"
@@ -1429,6 +1796,66 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
         updateStyles();
         this.display();
         void this.plugin.saveSettings();
+      })
+    );
+    const cssGuideEl = advancedContent.createEl("div", {
+      cls: "discord-syntax-css-guide"
+    });
+    cssGuideEl.style.marginTop = "16px";
+    cssGuideEl.style.paddingTop = "12px";
+    cssGuideEl.style.borderTop = "1px solid var(--background-modifier-border)";
+    cssGuideEl.createEl("h4", { text: "Custom CSS & Theme Customization" });
+    cssGuideEl.createEl("p", {
+      text: "The plugin sets inline CSS variables on document.body when custom settings are saved. To override these variables without !important, target element selectors directly (such as .discord-syntax-spoiler, .note-flow-spoiler, .discord-subtext, or .discord-subtext-marker)."
+    });
+    const exampleSnippet = `/* Custom CSS snippet for spoilers (covering main & alias classes) */
+.discord-syntax-spoiler,
+.note-flow-spoiler {
+  --discord-spoiler-hidden-bg: #2b2d31;
+  --discord-spoiler-revealed-bg: #404249;
+  --discord-spoiler-text-color: #f2f3f5;
+  --discord-spoiler-radius: 6px;
+  --discord-spoiler-padding: 4px;
+}
+
+/* Custom CSS snippet for subtext and subtext markers */
+.discord-subtext,
+.discord-subtext-marker,
+.discord-subtext-marker-active {
+  --discord-subtext-color: #949ba4;
+  --discord-subtext-font-size: 12px;
+  --discord-subtext-opacity: 0.8;
+}`;
+    const codePre = cssGuideEl.createEl("pre", {
+      cls: "discord-syntax-code-block"
+    });
+    codePre.style.padding = "10px";
+    codePre.style.borderRadius = "4px";
+    codePre.style.backgroundColor = "var(--background-primary-alt)";
+    codePre.style.overflowX = "auto";
+    codePre.createEl("code", { text: exampleSnippet });
+    new import_obsidian2.Setting(cssGuideEl).setName("Copy example CSS snippet").setDesc(
+      "Copy standard CSS snippet for theme customization to clipboard."
+    ).addButton(
+      (btn) => btn.setButtonText("Copy snippet").onClick(() => {
+        const doCopy = async () => {
+          try {
+            await navigator.clipboard.writeText(exampleSnippet);
+            btn.setButtonText("Copied!");
+            if (this.copyTimeoutId !== null) {
+              window.clearTimeout(this.copyTimeoutId);
+            }
+            this.copyTimeoutId = window.setTimeout(() => {
+              this.copyTimeoutId = null;
+              if (btn.buttonEl && btn.buttonEl.isConnected) {
+                btn.setButtonText("Copy snippet");
+              }
+            }, 2e3);
+          } catch {
+            new import_obsidian2.Notice("Failed to copy CSS snippet to clipboard.");
+          }
+        };
+        void doCopy();
       })
     );
     const updateSections = () => {
