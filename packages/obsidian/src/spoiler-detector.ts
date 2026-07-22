@@ -11,6 +11,7 @@ import {
   StateField,
   StateEffect,
 } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
 import {
   findSpoilerRanges,
   SpoilerRange,
@@ -133,6 +134,7 @@ export interface SpoilerFragment {
   isStart: boolean;
   isEnd: boolean;
   classes: string;
+  spoilerId?: string;
 }
 
 export function isRangeInCodeNode(
@@ -148,7 +150,7 @@ export function isRangeInCodeNode(
     tree.iterate({
       from,
       to,
-      enter(node) {
+      enter(node: { name: string; from: number; to: number }) {
         const name = node.name.toLowerCase();
         if (
           name.includes("code") ||
@@ -195,7 +197,7 @@ export function getSpoilerFragments(
       tree.iterate({
         from: contentFrom,
         to: contentTo,
-        enter(node) {
+        enter(node: { name: string; from: number; to: number }) {
           if (node.from > contentFrom && node.from < contentTo) {
             pointsSet.add(node.from);
           }
