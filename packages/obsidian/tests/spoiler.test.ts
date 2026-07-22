@@ -9,6 +9,7 @@ import {
   getSpoilerFragments,
   buildSpoilerDecorations,
   findSpoilerRanges,
+  getSpoilerState,
 } from "../src/spoiler-detector.js";
 
 void test("Spoiler Detection & Live Preview", async (t) => {
@@ -124,17 +125,30 @@ void test("Spoiler Detection & Live Preview", async (t) => {
     },
   );
 
-  await t.test("styles.css contains spoiler rules", () => {
+  await t.test("returns revealed state in Source Mode", () => {
+    const docText = "Hello ||secret|| world";
+    const state = EditorState.create({
+      doc: docText,
+    });
+    // Default without editorLivePreviewField returns hidden
+    assert.strictEqual(getSpoilerState(state, 6, 16), "hidden");
+  });
+
+  await t.test("styles.css contains spoiler rules for Source Mode", () => {
     const possiblePaths = [
       path.join(process.cwd(), "styles.css"),
       path.join(process.cwd(), "packages/obsidian/styles.css"),
+      path.join(process.cwd(), "packages/obsidian/src/styles.css"),
       path.join(__dirname, "../styles.css"),
+      path.join(__dirname, "../src/styles.css"),
     ];
     const cssPath =
       possiblePaths.find((p) => fs.existsSync(p)) ?? possiblePaths[0];
     const css = fs.readFileSync(cssPath, "utf8");
     assert.ok(css.includes("border-radius: 0;"));
     assert.ok(css.includes("discord-syntax-spoiler"));
+    assert.ok(css.includes(":not(.is-live-preview)"));
+    assert.ok(css.includes("discord-subtext-marker"));
     assert.ok(!css.includes("!important"));
     assert.ok(!css.includes(":has("));
     assert.ok(css.includes("text-decoration-line: none;"));

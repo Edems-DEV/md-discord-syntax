@@ -11,11 +11,20 @@ import {
   StateField,
   StateEffect,
 } from "@codemirror/state";
-import { syntaxTree } from "@codemirror/language";
 import {
   findSpoilerRanges,
   SpoilerRange,
 } from "@edems-dev/md-discord-syntax-core";
+
+function getEditorLivePreviewField(): StateField<boolean> | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const obs = require("obsidian");
+    return obs?.editorLivePreviewField ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export { findSpoilerRanges, SpoilerRange };
 
@@ -65,6 +74,14 @@ export function getSpoilerState(
   from: number,
   to: number,
 ): SpoilerState {
+  const livePreviewField = getEditorLivePreviewField();
+  if (livePreviewField) {
+    const isLivePreview = state.field(livePreviewField, false);
+    if (isLivePreview === false) {
+      return "revealed";
+    }
+  }
+
   const entries = state.field(spoilerStateField, false) || [];
   const match = entries.find((e) => e.from === from && e.to === to);
   if (match) return match.state;
@@ -352,6 +369,8 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
     decorations: (v) => v.decorations,
     eventHandlers: {
       mousedown(event, view) {
+        const livePreviewField = getEditorLivePreviewField();
+        if (livePreviewField && view.state.field(livePreviewField, false) === false) return;
         const target = event.target as HTMLElement | null;
 
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
@@ -454,6 +473,8 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
         }
       },
       keydown(event, view) {
+        const livePreviewField = getEditorLivePreviewField();
+        if (livePreviewField && view.state.field(livePreviewField, false) === false) return;
         if (event.key === "Enter" || event.key === " ") {
           const spoiler = getSpoilerAtSelection(view.state);
           if (spoiler) {

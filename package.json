@@ -4,11 +4,14 @@
   "private": true,
   "description": "Monorepo for Discord syntax extensions (core, remark, obsidian)",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
     "prebuild": "npm run build -w @edems-dev/md-discord-syntax-core",
     "build": "npm run build --workspaces --if-present",
+    "postbuild": "node scripts/sync-examples.js",
+    "sync:examples": "node scripts/sync-examples.js",
     "pretest": "npm run build -w @edems-dev/md-discord-syntax-core",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",

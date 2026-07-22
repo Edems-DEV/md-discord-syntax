@@ -119,7 +119,15 @@ export function remarkMdDiscordSyntax() {
           name: "Spoiler",
           attributes: [],
           children: normalizedInside,
-          data: { _isGenerated: true },
+          data: {
+            _isGenerated: true,
+            hName: "span",
+            hProperties: {
+              className: ["discord-syntax-spoiler", "discord-spoiler"],
+              "data-spoiler": "true",
+              onclick: "this.classList.toggle('revealed')",
+            },
+          },
         });
 
         currentIndex = pair.end + 1;
@@ -228,7 +236,14 @@ export function remarkMdDiscordSyntax() {
                 },
               ],
               children: filteredLine,
-              data: { _isGenerated: true },
+              data: {
+                _isGenerated: true,
+                hName: "span",
+                hProperties: {
+                  "data-subtext": "true",
+                  className: ["discord-syntax-subtext", "discord-subtext"],
+                },
+              },
             });
           }
         } else {

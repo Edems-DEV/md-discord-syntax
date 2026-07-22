@@ -5,3 +5,4 @@ styles.css
 !packages/obsidian/src/styles.css
 *.tsbuildinfo
 .DS_Store
+.next/

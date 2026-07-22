@@ -26,6 +26,8 @@ void test("Remark Discord Syntax Plugin", async (t) => {
     assert.strictEqual(spoiler.name, "Spoiler");
     assert.strictEqual(spoiler.children![0].value, "secret message");
     assert.strictEqual(spoiler.data?._isGenerated, true);
+    assert.strictEqual(spoiler.data?.hName, "span");
+    assert.strictEqual((spoiler.data?.hProperties as Record<string, string>)?.["data-spoiler"], "true");
   });
 
   await t.test("ignores delimiter text inside code", async () => {
