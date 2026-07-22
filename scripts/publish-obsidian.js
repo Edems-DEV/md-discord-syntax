@@ -5,25 +5,81 @@ const path = require("path");
 const rootDir = path.resolve(__dirname, "..");
 const obsidianPkgPath = path.join(rootDir, "packages", "obsidian", "package.json");
 
+const args = process.argv.slice(2);
+const bumpType =
+  args.find((a) => ["--patch", "--minor", "--major"].includes(a))?.replace("--", "") ||
+  (args.includes("--auto") ? "patch" : null);
+
 console.log("🚀 Preparing Obsidian plugin release...");
 
-// 1. Read Obsidian package version
 if (!fs.existsSync(obsidianPkgPath)) {
   console.error("❌ packages/obsidian/package.json not found!");
   process.exit(1);
 }
 
-const obsidianPkg = JSON.parse(fs.readFileSync(obsidianPkgPath, "utf8"));
-const version = obsidianPkg.version;
+let obsidianPkg = JSON.parse(fs.readFileSync(obsidianPkgPath, "utf8"));
+let currentVersion = obsidianPkg.version || "1.0.0";
 
-if (!version) {
-  console.error("❌ packages/obsidian/package.json is missing version!");
-  process.exit(1);
+// Check if current tag exists locally or on remote
+let existingTags = [];
+try {
+  const output = execSync("git tag -l", { cwd: rootDir, encoding: "utf8" });
+  existingTags = output.split("\n").map((t) => t.trim()).filter(Boolean);
+} catch (e) {
+  // Ignore
 }
 
-console.log(`📦 Target Obsidian Plugin Version: ${version}`);
+const tagExists = existingTags.includes(currentVersion);
 
-// 2. Run full pre-release validation suite
+if (bumpType || tagExists) {
+  const typeToUse = bumpType || "patch";
+  const semverParts = currentVersion.split(".").map((n) => parseInt(n, 10));
+  if (semverParts.length !== 3 || semverParts.some(isNaN)) {
+    console.error(`❌ Cannot auto-bump invalid semver "${currentVersion}"`);
+    process.exit(1);
+  }
+
+  if (typeToUse === "major") {
+    semverParts[0] += 1;
+    semverParts[1] = 0;
+    semverParts[2] = 0;
+  } else if (typeToUse === "minor") {
+    semverParts[1] += 1;
+    semverParts[2] = 0;
+  } else {
+    semverParts[2] += 1;
+  }
+
+  const nextVersion = semverParts.join(".");
+  console.log(`⚡ Auto-bumping Obsidian version (${typeToUse}): ${currentVersion} -> ${nextVersion}`);
+
+  obsidianPkg.version = nextVersion;
+  fs.writeFileSync(obsidianPkgPath, JSON.stringify(obsidianPkg, null, 2) + "\n");
+
+  console.log("🔄 Syncing version to manifest.json and versions.json...");
+  execSync("npm run sync:versions", { stdio: "inherit", cwd: rootDir });
+
+  console.log("📝 Committing version bump...");
+  try {
+    execSync(
+      "git add packages/obsidian/package.json manifest.json versions.json packages/obsidian/manifest.json packages/obsidian/versions.json",
+      { cwd: rootDir }
+    );
+    execSync(`git commit -m "🆕 obsidian ${nextVersion}"`, {
+      stdio: "inherit",
+      cwd: rootDir,
+    });
+    execSync("git push origin master", { stdio: "inherit", cwd: rootDir });
+  } catch (err) {
+    console.warn("⚠️ Git commit/push warning:", err.message);
+  }
+
+  currentVersion = nextVersion;
+}
+
+console.log(`📦 Target Obsidian Plugin Version: ${currentVersion}`);
+
+// Run full pre-release validation suite
 try {
   console.log("\n🔍 Running release validation checks (build, test, validate)...");
   execSync("npm run release:check", { stdio: "inherit", cwd: rootDir });
@@ -32,22 +88,8 @@ try {
   process.exit(1);
 }
 
-// 3. Check if tag already exists in local or remote git
-let existingTags = "";
-try {
-  existingTags = execSync("git tag -l", { cwd: rootDir, encoding: "utf8" });
-} catch (e) {
-  // Ignore
-}
-
-const tag = version;
-if (existingTags.split("\n").map(t => t.trim()).includes(tag)) {
-  console.warn(`\n⚠️ Git tag "${tag}" already exists locally/remotely!`);
-  console.warn(`💡 To publish a new release, bump the version in packages/obsidian/package.json (e.g. to ${version.replace(/\d+$/, (m) => parseInt(m, 10) + 1)}) or run "npm run version".`);
-  process.exit(0);
-}
-
-// 4. Create tag & push to trigger GitHub release workflow
+const tag = currentVersion;
+// Create tag & push to trigger GitHub release workflow
 try {
   console.log(`\n🏷️ Creating git tag "${tag}"...`);
   execSync(`git tag ${tag}`, { stdio: "inherit", cwd: rootDir });
