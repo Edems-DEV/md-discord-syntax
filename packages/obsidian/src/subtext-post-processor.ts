@@ -6,16 +6,23 @@ import {
 
 const SUBTEXT_CLASS = "discord-subtext";
 
-export function processSubtextParagraph(p: HTMLElement): void {
-  if (!paragraphMightHaveSubtext(p)) return;
+export function processSubtextParagraph(el: HTMLElement): void {
+  if (
+    typeof el.querySelector === "function" &&
+    el.querySelector("p, ul, ol, div, blockquote")
+  ) {
+    return;
+  }
 
-  const children = Array.from(p.childNodes);
+  if (!elementMightHaveSubtext(el)) return;
+
+  const children = Array.from(el.childNodes);
   const lines = splitIntoLines(children);
 
   const hasAny = lines.some((line) => lineIsSubtext(line));
   if (!hasAny) return;
 
-  emptyContainer(p);
+  emptyContainer(el);
 
   for (let li = 0; li < lines.length; li++) {
     const line = lines[li];
@@ -24,12 +31,46 @@ export function processSubtextParagraph(p: HTMLElement): void {
     if (lineIsSubtext(line)) {
       const clone = cloneLine(line);
       stripMarkerFromFirstText(clone);
-      const span = p.createEl("span", { cls: SUBTEXT_CLASS });
-      for (const node of clone) span.appendChild(node);
+
+      const controls: Node[] = [];
+      const subtextNodes: Node[] = [];
+      for (const node of clone) {
+        if (
+          node.nodeType === ELEMENT_NODE_TYPE &&
+          ((node as Element).tagName === "INPUT" ||
+            (node as Element).classList?.contains("task-list-item-checkbox"))
+        ) {
+          controls.push(node);
+        } else {
+          subtextNodes.push(node);
+        }
+      }
+
+      for (const ctrl of controls) {
+        el.appendChild(ctrl);
+      }
+
+      if (subtextNodes.length > 0) {
+        const span = createSpanElement(el, SUBTEXT_CLASS);
+        for (const node of subtextNodes) span.appendChild(node);
+      }
     } else {
-      for (const node of line) p.appendChild(node);
+      for (const node of line) el.appendChild(node);
     }
   }
+}
+
+function createSpanElement(parent: HTMLElement, cls: string): HTMLElement {
+  const p = parent as HTMLElement & {
+    createEl?: (tag: string, o: { cls: string }) => HTMLElement;
+  };
+  if (typeof p.createEl === "function") {
+    return p.createEl("span", { cls });
+  }
+  const span = parent.ownerDocument.createElement("span");
+  span.className = cls;
+  parent.appendChild(span);
+  return span;
 }
 
 function emptyContainer(el: HTMLElement): void {
@@ -46,17 +87,21 @@ function emptyContainer(el: HTMLElement): void {
 const TEXT_NODE_TYPE = typeof Node !== "undefined" ? Node.TEXT_NODE : 3;
 const ELEMENT_NODE_TYPE = typeof Node !== "undefined" ? Node.ELEMENT_NODE : 1;
 
-function paragraphMightHaveSubtext(p: HTMLElement): boolean {
-  for (const child of Array.from(p.childNodes)) {
+function elementMightHaveSubtext(el: HTMLElement): boolean {
+  for (const child of Array.from(el.childNodes)) {
     if (child.nodeType === TEXT_NODE_TYPE) {
       const v = (child as Text).data;
       if (hasSubtextMarker(v)) return true;
     }
-    if (
-      child.nodeType === ELEMENT_NODE_TYPE &&
-      (child as Element).tagName === "BR"
-    ) {
-      return true;
+    if (child.nodeType === ELEMENT_NODE_TYPE) {
+      const elem = child as Element;
+      if (
+        elem.tagName === "BR" ||
+        elem.tagName === "INPUT" ||
+        elem.classList?.contains("task-list-item-checkbox")
+      ) {
+        return true;
+      }
     }
   }
   return false;
@@ -95,13 +140,19 @@ function splitIntoLines(nodes: ChildNode[]): ChildNode[][] {
 function lineIsSubtext(line: ChildNode[]): boolean {
   for (const node of line) {
     if (node.nodeType === TEXT_NODE_TYPE) {
-      return isSubtextLine((node as Text).data);
+      const data = (node as Text).data;
+      if (isSubtextLine(data)) return true;
+      if (data.trim().length === 0) continue;
+      return false;
     }
     if (
       node.nodeType === ELEMENT_NODE_TYPE &&
-      (node as Element).tagName === "BR"
-    )
+      ((node as Element).tagName === "BR" ||
+        (node as Element).tagName === "INPUT" ||
+        (node as Element).classList?.contains("task-list-item-checkbox"))
+    ) {
       continue;
+    }
     return false;
   }
   return false;
@@ -122,9 +173,13 @@ function stripMarkerFromFirstText(nodes: Node[]): void {
     }
     if (
       node.nodeType === ELEMENT_NODE_TYPE &&
-      (node as Element).tagName === "BR"
-    )
+      ((node as Element).tagName === "BR" ||
+        (node as Element).tagName === "INPUT" ||
+        (node as Element).classList?.contains("task-list-item-checkbox"))
+    ) {
       continue;
+    }
     return;
   }
 }
+

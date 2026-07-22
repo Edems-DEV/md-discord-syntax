@@ -7,8 +7,8 @@ import {
 } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
 import {
-  SUBTEXT_MARKER,
   SUBTEXT_MARKER_LEN,
+  parseSubtextLine,
 } from "@edems-dev/md-discord-syntax-core";
 
 const subtextLineMark = Decoration.mark({ class: "discord-subtext" });
@@ -62,21 +62,25 @@ function buildDecorations(view: EditorView): DecorationSet {
       const line = doc.line(ln);
       const text = line.text;
 
-      if (!text.startsWith(SUBTEXT_MARKER)) continue;
+      const parsed = parseSubtextLine(text);
+      if (!parsed) continue;
 
       const isActive = activeLines.has(ln);
+      const markerFrom = line.from + parsed.prefix.length;
+      const markerTo = markerFrom + SUBTEXT_MARKER_LEN;
 
       builder.add(
-        line.from,
-        line.from + SUBTEXT_MARKER_LEN,
+        markerFrom,
+        markerTo,
         isActive ? subtextMarkerActiveMark : subtextMarkerMark,
       );
 
-      if (line.to > line.from + SUBTEXT_MARKER_LEN) {
-        builder.add(line.from + SUBTEXT_MARKER_LEN, line.to, subtextLineMark);
+      if (line.to > markerTo) {
+        builder.add(markerTo, line.to, subtextLineMark);
       }
     }
   }
 
   return builder.finish();
 }
+

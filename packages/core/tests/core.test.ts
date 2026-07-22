@@ -88,17 +88,29 @@ void test("Core Spoiler & Subtext Syntax Rules", async (t) => {
   await t.test("subtext detection and prefix stripping", () => {
     assert.strictEqual(isSubtextLine("-# Subtext line"), true);
     assert.strictEqual(isSubtextLine("-#not subtext"), false);
-    assert.strictEqual(isSubtextLine(" -# leading space not subtext"), false);
+    assert.strictEqual(isSubtextLine(" -# leading space subtext"), true);
     assert.strictEqual(isSubtextLine("Normal text"), false);
+    assert.strictEqual(isSubtextLine("> -# Callout subtext"), true);
+    assert.strictEqual(isSubtextLine("- -# List subtext"), true);
+    assert.strictEqual(isSubtextLine("1. -# Numbered list subtext"), true);
+    assert.strictEqual(isSubtextLine("- [ ] -# Task subtext"), true);
 
     assert.strictEqual(stripSubtextPrefix("-# Hello"), "Hello");
+    assert.strictEqual(stripSubtextPrefix("> -# Hello"), "> Hello");
+    assert.strictEqual(stripSubtextPrefix("- -# Hello"), "- Hello");
+    assert.strictEqual(stripSubtextPrefix("  -# Hello"), "  Hello");
     assert.strictEqual(stripSubtextPrefix("Normal text"), "Normal text");
 
     assert.strictEqual(hasSubtextMarker("First line\n-# Second line"), true);
     assert.strictEqual(
-      hasSubtextMarker("First line\n-# Line 2\n-# Line 3"),
+      hasSubtextMarker("Callout header\n> -# Callout subtext"),
+      true,
+    );
+    assert.strictEqual(
+      hasSubtextMarker("List header\n- -# Subtext item"),
       true,
     );
     assert.strictEqual(hasSubtextMarker("First line\nSecond line"), false);
   });
+
 });

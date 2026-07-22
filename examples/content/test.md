@@ -64,3 +64,7 @@ Normal paragraph line 3.
 -# Subtext containing ||a secret spoiler|| and `code`.
 > Quote containing:
 > -# Subtext inside blockquote with ||spoiler||.
+
+- List
+	- Normal list
+	- -# Subtext in list

@@ -18,8 +18,8 @@ export default class DiscordSyntaxPlugin extends Plugin {
   onload() {
     // ── Reading View Post Processor ──────────────────────────────────────
     this.registerMarkdownPostProcessor((element) => {
-      element.querySelectorAll("p").forEach((p) => {
-        processSubtextParagraph(p);
+      element.querySelectorAll("p, li, .callout-content").forEach((el) => {
+        processSubtextParagraph(el as HTMLElement);
       });
       processSpoilers(element);
     });

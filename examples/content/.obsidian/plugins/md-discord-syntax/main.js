@@ -206,17 +206,32 @@ function findSpoilerRanges(text, baseOffset = 0) {
 // ../core/dist/subtext.js
 var SUBTEXT_MARKER = "-# ";
 var SUBTEXT_MARKER_LEN = SUBTEXT_MARKER.length;
+var SUBTEXT_LINE_REGEX = /^(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|\-\s*\[[ xX]\])\s+)?\s*-# /;
+function parseSubtextLine(lineText) {
+  const match = lineText.match(SUBTEXT_LINE_REGEX);
+  if (!match)
+    return null;
+  const fullMatched = match[0];
+  const markerIdx = fullMatched.lastIndexOf(SUBTEXT_MARKER);
+  if (markerIdx === -1)
+    return null;
+  const prefix = lineText.slice(0, markerIdx);
+  const marker = SUBTEXT_MARKER;
+  const content = lineText.slice(markerIdx + SUBTEXT_MARKER_LEN);
+  return { prefix, marker, content };
+}
 function isSubtextLine(lineText) {
-  return lineText.startsWith(SUBTEXT_MARKER);
+  return SUBTEXT_LINE_REGEX.test(lineText);
 }
 function stripSubtextPrefix(lineText) {
-  if (isSubtextLine(lineText)) {
-    return lineText.slice(SUBTEXT_MARKER_LEN);
+  const parsed = parseSubtextLine(lineText);
+  if (parsed) {
+    return parsed.prefix + parsed.content;
   }
   return lineText;
 }
 function hasSubtextMarker(text) {
-  return /(?:^|\n)-# /.test(text);
+  return /(?:^|\n)(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|\-\s*\[[ xX]\])\s+)?\s*-# /.test(text);
 }
 
 // src/spoiler-post-processor.ts
@@ -905,25 +920,52 @@ var spoilerLivePreviewExtension = [
 
 // src/subtext-post-processor.ts
 var SUBTEXT_CLASS = "discord-subtext";
-function processSubtextParagraph(p) {
-  if (!paragraphMightHaveSubtext(p)) return;
-  const children = Array.from(p.childNodes);
+function processSubtextParagraph(el) {
+  if (typeof el.querySelector === "function" && el.querySelector("p, ul, ol, div, blockquote")) {
+    return;
+  }
+  if (!elementMightHaveSubtext(el)) return;
+  const children = Array.from(el.childNodes);
   const lines = splitIntoLines(children);
   const hasAny = lines.some((line) => lineIsSubtext(line));
   if (!hasAny) return;
-  emptyContainer(p);
+  emptyContainer(el);
   for (let li = 0; li < lines.length; li++) {
     const line = lines[li];
     if (line.length === 0) continue;
     if (lineIsSubtext(line)) {
       const clone = cloneLine(line);
       stripMarkerFromFirstText(clone);
-      const span = p.createEl("span", { cls: SUBTEXT_CLASS });
-      for (const node of clone) span.appendChild(node);
+      const controls = [];
+      const subtextNodes = [];
+      for (const node of clone) {
+        if (node.nodeType === ELEMENT_NODE_TYPE && (node.tagName === "INPUT" || node.classList?.contains("task-list-item-checkbox"))) {
+          controls.push(node);
+        } else {
+          subtextNodes.push(node);
+        }
+      }
+      for (const ctrl of controls) {
+        el.appendChild(ctrl);
+      }
+      if (subtextNodes.length > 0) {
+        const span = createSpanElement(el, SUBTEXT_CLASS);
+        for (const node of subtextNodes) span.appendChild(node);
+      }
     } else {
-      for (const node of line) p.appendChild(node);
+      for (const node of line) el.appendChild(node);
     }
   }
+}
+function createSpanElement(parent, cls) {
+  const p = parent;
+  if (typeof p.createEl === "function") {
+    return p.createEl("span", { cls });
+  }
+  const span = parent.ownerDocument.createElement("span");
+  span.className = cls;
+  parent.appendChild(span);
+  return span;
 }
 function emptyContainer(el) {
   const emptyable = el;
@@ -937,14 +979,17 @@ function emptyContainer(el) {
 }
 var TEXT_NODE_TYPE = typeof Node !== "undefined" ? Node.TEXT_NODE : 3;
 var ELEMENT_NODE_TYPE = typeof Node !== "undefined" ? Node.ELEMENT_NODE : 1;
-function paragraphMightHaveSubtext(p) {
-  for (const child of Array.from(p.childNodes)) {
+function elementMightHaveSubtext(el) {
+  for (const child of Array.from(el.childNodes)) {
     if (child.nodeType === TEXT_NODE_TYPE) {
       const v = child.data;
       if (hasSubtextMarker(v)) return true;
     }
-    if (child.nodeType === ELEMENT_NODE_TYPE && child.tagName === "BR") {
-      return true;
+    if (child.nodeType === ELEMENT_NODE_TYPE) {
+      const elem = child;
+      if (elem.tagName === "BR" || elem.tagName === "INPUT" || elem.classList?.contains("task-list-item-checkbox")) {
+        return true;
+      }
     }
   }
   return false;
@@ -976,10 +1021,14 @@ function splitIntoLines(nodes) {
 function lineIsSubtext(line) {
   for (const node of line) {
     if (node.nodeType === TEXT_NODE_TYPE) {
-      return isSubtextLine(node.data);
+      const data = node.data;
+      if (isSubtextLine(data)) return true;
+      if (data.trim().length === 0) continue;
+      return false;
     }
-    if (node.nodeType === ELEMENT_NODE_TYPE && node.tagName === "BR")
+    if (node.nodeType === ELEMENT_NODE_TYPE && (node.tagName === "BR" || node.tagName === "INPUT" || node.classList?.contains("task-list-item-checkbox"))) {
       continue;
+    }
     return false;
   }
   return false;
@@ -996,8 +1045,9 @@ function stripMarkerFromFirstText(nodes) {
       }
       return;
     }
-    if (node.nodeType === ELEMENT_NODE_TYPE && node.tagName === "BR")
+    if (node.nodeType === ELEMENT_NODE_TYPE && (node.tagName === "BR" || node.tagName === "INPUT" || node.classList?.contains("task-list-item-checkbox"))) {
       continue;
+    }
     return;
   }
 }
@@ -1042,15 +1092,18 @@ function buildDecorations(view) {
     for (let ln = startLine; ln <= endLine; ln++) {
       const line = doc.line(ln);
       const text = line.text;
-      if (!text.startsWith(SUBTEXT_MARKER)) continue;
+      const parsed = parseSubtextLine(text);
+      if (!parsed) continue;
       const isActive = activeLines.has(ln);
+      const markerFrom = line.from + parsed.prefix.length;
+      const markerTo = markerFrom + SUBTEXT_MARKER_LEN;
       builder.add(
-        line.from,
-        line.from + SUBTEXT_MARKER_LEN,
+        markerFrom,
+        markerTo,
         isActive ? subtextMarkerActiveMark : subtextMarkerMark
       );
-      if (line.to > line.from + SUBTEXT_MARKER_LEN) {
-        builder.add(line.from + SUBTEXT_MARKER_LEN, line.to, subtextLineMark);
+      if (line.to > markerTo) {
+        builder.add(markerTo, line.to, subtextLineMark);
       }
     }
   }
@@ -1061,8 +1114,8 @@ function buildDecorations(view) {
 var DiscordSyntaxPlugin = class extends import_obsidian.Plugin {
   onload() {
     this.registerMarkdownPostProcessor((element) => {
-      element.querySelectorAll("p").forEach((p) => {
-        processSubtextParagraph(p);
+      element.querySelectorAll("p, li, .callout-content").forEach((el) => {
+        processSubtextParagraph(el);
       });
       processSpoilers(element);
     });
