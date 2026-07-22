@@ -17,9 +17,10 @@ interface ObsidianEditor {
 export default class DiscordSyntaxPlugin extends Plugin {
   onload() {
     // ── Reading View Post Processor ──────────────────────────────────────
-    this.registerMarkdownPostProcessor((element) => {
-      element.querySelectorAll("p, li, .callout-content").forEach((el) => {
-        processSubtextParagraph(el as HTMLElement);
+    this.registerMarkdownPostProcessor((element: HTMLElement) => {
+      const targets = element.findAll("p, li, .callout-content");
+      targets.forEach((el) => {
+        processSubtextParagraph(el);
       });
       processSpoilers(element);
     });
@@ -40,7 +41,7 @@ export default class DiscordSyntaxPlugin extends Plugin {
         if (mode === "preview") {
           const container = activeView.previewMode?.containerEl;
           if (!container) return;
-          const spoilers = container.querySelectorAll(
+          const spoilers = container.findAll(
             ".note-flow-spoiler, .discord-syntax-spoiler",
           );
           if (spoilers.length === 0) return;
@@ -55,7 +56,7 @@ export default class DiscordSyntaxPlugin extends Plugin {
 
           const targetReveal = anyHidden;
           for (let i = 0; i < spoilers.length; i++) {
-            const el = spoilers[i] as HTMLElement;
+            const el = spoilers[i];
             const inner = el.firstElementChild as HTMLElement | null;
             if (targetReveal) {
               el.classList.add("is-revealed");
@@ -70,7 +71,7 @@ export default class DiscordSyntaxPlugin extends Plugin {
             }
           }
         } else if (mode === "source") {
-          const editor = activeView.editor as ObsidianEditor;
+          const editor = activeView.editor as unknown as ObsidianEditor;
           const cm = editor.cm;
           if (
             !cm ||

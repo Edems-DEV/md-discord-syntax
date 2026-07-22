@@ -7,10 +7,13 @@ import {
 const SUBTEXT_CLASS = "discord-subtext";
 
 export function processSubtextParagraph(el: HTMLElement): void {
-  if (
-    typeof el.querySelector === "function" &&
-    el.querySelector("p, ul, ol, div, blockquote")
-  ) {
+  const blockSelector = "p, ul, ol, div, blockquote";
+  const finder = el as HTMLElement & {
+    find?: (s: string) => HTMLElement | null;
+  };
+  const hasChildBlock =
+    typeof finder.find === "function" && finder.find(blockSelector) !== null;
+  if (hasChildBlock) {
     return;
   }
 
@@ -61,20 +64,24 @@ export function processSubtextParagraph(el: HTMLElement): void {
 }
 
 function createSpanElement(parent: HTMLElement, cls: string): HTMLElement {
-  const p = parent as HTMLElement & {
-    createEl?: (tag: string, o: { cls: string }) => HTMLElement;
-  };
-  if (typeof p.createEl === "function") {
-    return p.createEl("span", { cls });
+  if (typeof parent.createSpan === "function") {
+    return parent.createSpan({ cls });
   }
-  const span = parent.ownerDocument.createElement("span");
-  span.className = cls;
-  parent.appendChild(span);
-  return span;
+  if (typeof parent.createEl === "function") {
+    return parent.createEl("span", { cls });
+  }
+  const ownerDoc = parent.ownerDocument;
+  if (ownerDoc && typeof ownerDoc.createElement === "function") {
+    const span = ownerDoc.createElement("span");
+    span.className = cls;
+    parent.appendChild(span);
+    return span;
+  }
+  return parent;
 }
 
 function emptyContainer(el: HTMLElement): void {
-  const emptyable = el as unknown as { empty?: () => void };
+  const emptyable = el as HTMLElement & { empty?: () => void };
   if (typeof emptyable.empty === "function") {
     emptyable.empty();
   } else {
@@ -182,4 +189,3 @@ function stripMarkerFromFirstText(nodes: Node[]): void {
     return;
   }
 }
-

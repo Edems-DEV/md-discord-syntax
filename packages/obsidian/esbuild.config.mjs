@@ -17,7 +17,10 @@ async function copyReleaseAssets() {
       await fs.copyFile(stylesCssSrc, stylesCssDest);
     }
   } catch (e) {
-    console.error("❌ Release asset copy failed:", e.message);
+    console.error(
+      "❌ Release asset copy failed:",
+      e instanceof Error ? e.message : String(e),
+    );
   }
 }
 
@@ -40,7 +43,10 @@ const checkExternalPlugin = {
             process.exit(1);
           }
         } catch (e) {
-          console.error("❌ Failed to verify bundle:", e.message);
+          console.error(
+            "❌ Failed to verify bundle:",
+            e instanceof Error ? e.message : String(e),
+          );
         }
         await copyReleaseAssets();
       }

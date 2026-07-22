@@ -28,7 +28,7 @@ __export(main_exports, {
   default: () => DiscordSyntaxPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian = require("obsidian");
+var import_obsidian2 = require("obsidian");
 var import_view3 = require("@codemirror/view");
 
 // ../core/dist/spoiler.js
@@ -416,13 +416,9 @@ function processSpoilers(element, doc = element.ownerDocument) {
 var import_view = require("@codemirror/view");
 var import_state = require("@codemirror/state");
 var import_language = require("@codemirror/language");
+var import_obsidian = require("obsidian");
 function getEditorLivePreviewField() {
-  try {
-    const obs = require("obsidian");
-    return obs?.editorLivePreviewField ?? null;
-  } catch {
-    return null;
-  }
+  return typeof import_obsidian.editorLivePreviewField !== "undefined" ? import_obsidian.editorLivePreviewField : null;
 }
 var setSpoilerStateEffect = import_state.StateEffect.define();
 var spoilerStateField = import_state.StateField.define({
@@ -700,7 +696,8 @@ var spoilerLivePreviewPlugin = import_view.ViewPlugin.fromClass(
     eventHandlers: {
       mousedown(event, view) {
         const livePreviewField = getEditorLivePreviewField();
-        if (livePreviewField && view.state.field(livePreviewField, false) === false) return;
+        if (livePreviewField && view.state.field(livePreviewField, false) === false)
+          return;
         const target = event.target;
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
         if (pos !== null) {
@@ -814,7 +811,8 @@ var spoilerLivePreviewPlugin = import_view.ViewPlugin.fromClass(
       },
       keydown(event, view) {
         const livePreviewField = getEditorLivePreviewField();
-        if (livePreviewField && view.state.field(livePreviewField, false) === false) return;
+        if (livePreviewField && view.state.field(livePreviewField, false) === false)
+          return;
         if (event.key === "Enter" || event.key === " ") {
           const spoiler = getSpoilerAtSelection(view.state);
           if (spoiler) {
@@ -877,9 +875,7 @@ var spoilerLivePreviewPlugin = import_view.ViewPlugin.fromClass(
         );
         const relatedId = relatedSpoiler?.getAttribute("data-spoiler-id");
         if (relatedId === spoilerId) return;
-        const elements = view.dom.querySelectorAll(
-          `[data-spoiler-id="${spoilerId}"]`
-        );
+        const elements = view.dom.findAll(`[data-spoiler-id="${spoilerId}"]`);
         for (let i = 0; i < elements.length; i++) {
           const el = elements[i];
           if (el instanceof HTMLElement) {
@@ -901,9 +897,7 @@ var spoilerLivePreviewPlugin = import_view.ViewPlugin.fromClass(
         );
         const relatedId = relatedSpoiler?.getAttribute("data-spoiler-id");
         if (relatedId === spoilerId) return;
-        const elements = view.dom.querySelectorAll(
-          `[data-spoiler-id="${spoilerId}"]`
-        );
+        const elements = view.dom.findAll(`[data-spoiler-id="${spoilerId}"]`);
         for (let i = 0; i < elements.length; i++) {
           const el = elements[i];
           if (el instanceof HTMLElement) {
@@ -922,7 +916,10 @@ var spoilerLivePreviewExtension = [
 // src/subtext-post-processor.ts
 var SUBTEXT_CLASS = "discord-subtext";
 function processSubtextParagraph(el) {
-  if (typeof el.querySelector === "function" && el.querySelector("p, ul, ol, div, blockquote")) {
+  const blockSelector = "p, ul, ol, div, blockquote";
+  const finder = el;
+  const hasChildBlock = typeof finder.find === "function" && finder.find(blockSelector) !== null;
+  if (hasChildBlock) {
     return;
   }
   if (!elementMightHaveSubtext(el)) return;
@@ -959,14 +956,20 @@ function processSubtextParagraph(el) {
   }
 }
 function createSpanElement(parent, cls) {
-  const p = parent;
-  if (typeof p.createEl === "function") {
-    return p.createEl("span", { cls });
+  if (typeof parent.createSpan === "function") {
+    return parent.createSpan({ cls });
   }
-  const span = parent.ownerDocument.createElement("span");
-  span.className = cls;
-  parent.appendChild(span);
-  return span;
+  if (typeof parent.createEl === "function") {
+    return parent.createEl("span", { cls });
+  }
+  const ownerDoc = parent.ownerDocument;
+  if (ownerDoc && typeof ownerDoc.createElement === "function") {
+    const span = ownerDoc.createElement("span");
+    span.className = cls;
+    parent.appendChild(span);
+    return span;
+  }
+  return parent;
 }
 function emptyContainer(el) {
   const emptyable = el;
@@ -1112,10 +1115,11 @@ function buildDecorations(view) {
 }
 
 // src/main.ts
-var DiscordSyntaxPlugin = class extends import_obsidian.Plugin {
+var DiscordSyntaxPlugin = class extends import_obsidian2.Plugin {
   onload() {
     this.registerMarkdownPostProcessor((element) => {
-      element.querySelectorAll("p, li, .callout-content").forEach((el) => {
+      const targets = element.findAll("p, li, .callout-content");
+      targets.forEach((el) => {
         processSubtextParagraph(el);
       });
       processSpoilers(element);
@@ -1126,13 +1130,13 @@ var DiscordSyntaxPlugin = class extends import_obsidian.Plugin {
       id: "toggle-all-spoilers",
       name: "Toggle all spoilers in active note",
       callback: () => {
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian.MarkdownView);
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
         if (!activeView) return;
         const mode = activeView.getMode();
         if (mode === "preview") {
           const container = activeView.previewMode?.containerEl;
           if (!container) return;
-          const spoilers = container.querySelectorAll(
+          const spoilers = container.findAll(
             ".note-flow-spoiler, .discord-syntax-spoiler"
           );
           if (spoilers.length === 0) return;

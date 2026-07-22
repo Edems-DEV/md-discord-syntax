@@ -83,4 +83,3 @@ function buildDecorations(view: EditorView): DecorationSet {
 
   return builder.finish();
 }
-

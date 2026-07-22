@@ -263,4 +263,86 @@ for (const asset of releaseAssets) {
   }
 }
 
-console.log("✨ All validation checks passed successfully!");
+// 7. Obsidian Plugin Reviewer / Scanner Compliance Checks
+console.log("🔍 Checking Obsidian Plugin Scanner Rules...");
+const obsidianSrcDir = path.join(rootDir, "packages", "obsidian", "src");
+const obsidianSrcFiles = fs
+  .readdirSync(obsidianSrcDir)
+  .filter((f) => f.endsWith(".ts"));
+
+for (const file of obsidianSrcFiles) {
+  const filePath = path.join(obsidianSrcDir, file);
+  const content = fs.readFileSync(filePath, "utf8");
+
+  // 7a. Check forbidden require() in src/
+  if (/require\s*\(/.test(content)) {
+    exitWithError(
+      `Forbidden require() found in packages/obsidian/src/${file}. Use ESM imports instead.`,
+    );
+  }
+
+  // 7b. Check static fs / path Node imports in src/
+  if (/import\s+.*from\s+["'](?:node:)?(?:fs|path)["']/.test(content)) {
+    exitWithError(
+      `Forbidden Node fs/path import found in packages/obsidian/src/${file}. Mobile unavailable!`,
+    );
+  }
+
+  // 7c. Check document.createElement in src/
+  if (/\bdocument\.createElement\b/.test(content)) {
+    exitWithError(
+      `Forbidden document.createElement found in packages/obsidian/src/${file}. Use createEl/createSpan instead.`,
+    );
+  }
+
+  // 7d. Check querySelector / querySelectorAll in src/
+  if (/\.(?:querySelector|querySelectorAll)\s*\(/.test(content)) {
+    exitWithError(
+      `Deprecated querySelector/querySelectorAll found in packages/obsidian/src/${file}. Use find/findAll instead.`,
+    );
+  }
+}
+
+// 7e. Check main.js bundle for scanner violations
+const mainJsPath = path.join(rootDir, "packages", "obsidian", "main.js");
+if (fs.existsSync(mainJsPath)) {
+  const mainJsContent = fs.readFileSync(mainJsPath, "utf8");
+
+  // Verify querySelector / querySelectorAll is not present in plugin code inside main.js
+  if (/\.(?:querySelector|querySelectorAll)\s*\(/.test(mainJsContent)) {
+    exitWithError(
+      "Deprecated querySelector/querySelectorAll found in packages/obsidian/main.js!",
+    );
+  }
+
+  // Verify document.createElement is not present in main.js
+  if (/\bdocument\.createElement\b/.test(mainJsContent)) {
+    exitWithError(
+      "Forbidden document.createElement found in packages/obsidian/main.js!",
+    );
+  }
+}
+
+// 7f. Check styles.css compatibility
+const stylesCssPath = path.join(
+  rootDir,
+  "packages",
+  "obsidian",
+  "src",
+  "styles.css",
+);
+if (fs.existsSync(stylesCssPath)) {
+  const cssContent = fs.readFileSync(stylesCssPath, "utf8");
+  if (/:has\s*\(/.test(cssContent)) {
+    exitWithError(
+      "Incompatible CSS selector :has() found in packages/obsidian/src/styles.css!",
+    );
+  }
+  if (/!important/.test(cssContent)) {
+    exitWithError(
+      "Forbidden !important flag found in packages/obsidian/src/styles.css!",
+    );
+  }
+}
+
+console.log("✨ All validation & scanner checks passed successfully!");

@@ -79,8 +79,6 @@
   color: transparent;
   -webkit-text-fill-color: transparent;
   text-decoration: none;
-  text-decoration-line: none;
-  text-decoration-color: transparent;
   text-shadow: none;
   box-shadow: none;
 }
@@ -188,4 +186,3 @@
   display: inline;
   opacity: 0.6;
 }
-

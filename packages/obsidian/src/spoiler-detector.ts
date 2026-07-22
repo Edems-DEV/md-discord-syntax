@@ -12,18 +12,14 @@ import {
   StateEffect,
 } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import { editorLivePreviewField } from "obsidian";
 import {
   findSpoilerRanges,
   SpoilerRange,
 } from "@edems-dev/md-discord-syntax-core";
 
 function getEditorLivePreviewField(): StateField<boolean> | null {
-  try {
-    const obs = require("obsidian");
-    return obs?.editorLivePreviewField ?? null;
-  } catch {
-    return null;
-  }
+  return typeof editorLivePreviewField !== "undefined" ? editorLivePreviewField : null;
 }
 
 export { findSpoilerRanges, SpoilerRange };
@@ -394,7 +390,11 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
     eventHandlers: {
       mousedown(event, view) {
         const livePreviewField = getEditorLivePreviewField();
-        if (livePreviewField && view.state.field(livePreviewField, false) === false) return;
+        if (
+          livePreviewField &&
+          view.state.field(livePreviewField, false) === false
+        )
+          return;
         const target = event.target as HTMLElement | null;
 
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
@@ -511,7 +511,11 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
       },
       keydown(event, view) {
         const livePreviewField = getEditorLivePreviewField();
-        if (livePreviewField && view.state.field(livePreviewField, false) === false) return;
+        if (
+          livePreviewField &&
+          view.state.field(livePreviewField, false) === false
+        )
+          return;
         if (event.key === "Enter" || event.key === " ") {
           const spoiler = getSpoilerAtSelection(view.state);
           if (spoiler) {
@@ -576,9 +580,7 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
         const relatedId = relatedSpoiler?.getAttribute("data-spoiler-id");
         if (relatedId === spoilerId) return;
 
-        const elements = view.dom.querySelectorAll(
-          `[data-spoiler-id="${spoilerId}"]`,
-        );
+        const elements = view.dom.findAll(`[data-spoiler-id="${spoilerId}"]`);
         for (let i = 0; i < elements.length; i++) {
           const el = elements[i];
           if (el instanceof HTMLElement) {
@@ -602,9 +604,7 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
         const relatedId = relatedSpoiler?.getAttribute("data-spoiler-id");
         if (relatedId === spoilerId) return;
 
-        const elements = view.dom.querySelectorAll(
-          `[data-spoiler-id="${spoilerId}"]`,
-        );
+        const elements = view.dom.findAll(`[data-spoiler-id="${spoilerId}"]`);
         for (let i = 0; i < elements.length; i++) {
           const el = elements[i];
           if (el instanceof HTMLElement) {

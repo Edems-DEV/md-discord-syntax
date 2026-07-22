@@ -12,6 +12,25 @@ import {
   isSelectionInSpoiler,
 } from "../src/spoiler-detector.js";
 
+if (typeof Element !== "undefined") {
+  const proto = Element.prototype as unknown as {
+    find?: (s: string) => Element | null;
+    findAll?: (s: string) => Element[];
+  };
+  if (typeof proto.find !== "function") {
+    proto.find = function (selector: string) {
+      return (this as unknown as HTMLElement).querySelector(selector);
+    };
+  }
+  if (typeof proto.findAll !== "function") {
+    proto.findAll = function (selector: string) {
+      return Array.from(
+        (this as unknown as HTMLElement).querySelectorAll(selector),
+      );
+    };
+  }
+}
+
 void test("Spoiler Detection & Live Preview", async (t) => {
   await t.test("detects basic spoiler range", () => {
     const text = "Hello ||secret|| world";
@@ -125,36 +144,39 @@ void test("Spoiler Detection & Live Preview", async (t) => {
     },
   );
 
-  await t.test("isSelectionInSpoiler detects when cursor/selection is inside spoiler range", () => {
-    const docText = "Hello ||secret|| world";
-    // Cursor at pos 0 (outside)
-    const stateOutside = EditorState.create({
-      doc: docText,
-      selection: { anchor: 0 },
-    });
-    assert.strictEqual(isSelectionInSpoiler(stateOutside, 6, 16), false);
+  await t.test(
+    "isSelectionInSpoiler detects when cursor/selection is inside spoiler range",
+    () => {
+      const docText = "Hello ||secret|| world";
+      // Cursor at pos 0 (outside)
+      const stateOutside = EditorState.create({
+        doc: docText,
+        selection: { anchor: 0 },
+      });
+      assert.strictEqual(isSelectionInSpoiler(stateOutside, 6, 16), false);
 
-    // Cursor at pos 6 (start of ||secret||)
-    const stateStart = EditorState.create({
-      doc: docText,
-      selection: { anchor: 6 },
-    });
-    assert.strictEqual(isSelectionInSpoiler(stateStart, 6, 16), true);
+      // Cursor at pos 6 (start of ||secret||)
+      const stateStart = EditorState.create({
+        doc: docText,
+        selection: { anchor: 6 },
+      });
+      assert.strictEqual(isSelectionInSpoiler(stateStart, 6, 16), true);
 
-    // Cursor at pos 10 (inside secret)
-    const stateInside = EditorState.create({
-      doc: docText,
-      selection: { anchor: 10 },
-    });
-    assert.strictEqual(isSelectionInSpoiler(stateInside, 6, 16), true);
+      // Cursor at pos 10 (inside secret)
+      const stateInside = EditorState.create({
+        doc: docText,
+        selection: { anchor: 10 },
+      });
+      assert.strictEqual(isSelectionInSpoiler(stateInside, 6, 16), true);
 
-    // Cursor at pos 16 (end of ||secret||, outside)
-    const stateEnd = EditorState.create({
-      doc: docText,
-      selection: { anchor: 16 },
-    });
-    assert.strictEqual(isSelectionInSpoiler(stateEnd, 6, 16), false);
-  });
+      // Cursor at pos 16 (end of ||secret||, outside)
+      const stateEnd = EditorState.create({
+        doc: docText,
+        selection: { anchor: 16 },
+      });
+      assert.strictEqual(isSelectionInSpoiler(stateEnd, 6, 16), false);
+    },
+  );
 
   await t.test(
     "buildSpoilerDecorations omits decorations (source mode) when cursor is in spoiler",
@@ -213,6 +235,6 @@ void test("Spoiler Detection & Live Preview", async (t) => {
     assert.ok(css.includes("discord-subtext-marker"));
     assert.ok(!css.includes("!important"));
     assert.ok(!css.includes(":has("));
-    assert.ok(css.includes("text-decoration-line: none;"));
+    assert.ok(css.includes("text-decoration: none;"));
   });
 });

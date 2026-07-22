@@ -45,6 +45,9 @@ void test("Subtext Reading View Post Processor", async (t) => {
         tagName: "P",
         ownerDocument: mockDocument,
         childNodes: children,
+        find() {
+          return null;
+        },
         createEl(tagName: string, options: { cls?: string }) {
           const span = mockDocument.createElement(tagName);
           if (options.cls) {
@@ -85,6 +88,9 @@ void test("Subtext Reading View Post Processor", async (t) => {
       nodeType: 1,
       tagName: "P",
       childNodes: children,
+      find() {
+        return null;
+      },
       empty() {
         children.length = 0;
       },
