@@ -117,7 +117,11 @@ export function findSpoilerRanges(
   // Pass 1: Standalone block spoilers (|| on line by itself)
   const lines = text.split("\n");
   let currentOffset = 0;
-  let blockStart: { lineIdx: number; offset: number; contentFrom: number } | null = null;
+  let blockStart: {
+    lineIdx: number;
+    offset: number;
+    contentFrom: number;
+  } | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

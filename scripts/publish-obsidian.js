@@ -3,12 +3,18 @@ const fs = require("fs");
 const path = require("path");
 
 const rootDir = path.resolve(__dirname, "..");
-const obsidianPkgPath = path.join(rootDir, "packages", "obsidian", "package.json");
+const obsidianPkgPath = path.join(
+  rootDir,
+  "packages",
+  "obsidian",
+  "package.json",
+);
 
 const args = process.argv.slice(2);
 const bumpType =
-  args.find((a) => ["--patch", "--minor", "--major"].includes(a))?.replace("--", "") ||
-  (args.includes("--auto") ? "patch" : null);
+  args
+    .find((a) => ["--patch", "--minor", "--major"].includes(a))
+    ?.replace("--", "") || (args.includes("--auto") ? "patch" : null);
 
 console.log("🚀 Preparing Obsidian plugin release...");
 
@@ -24,7 +30,10 @@ let currentVersion = obsidianPkg.version || "1.0.0";
 let existingTags = [];
 try {
   const output = execSync("git tag -l", { cwd: rootDir, encoding: "utf8" });
-  existingTags = output.split("\n").map((t) => t.trim()).filter(Boolean);
+  existingTags = output
+    .split("\n")
+    .map((t) => t.trim())
+    .filter(Boolean);
 } catch (e) {
   // Ignore
 }
@@ -51,10 +60,15 @@ if (bumpType || tagExists) {
   }
 
   const nextVersion = semverParts.join(".");
-  console.log(`⚡ Auto-bumping Obsidian version (${typeToUse}): ${currentVersion} -> ${nextVersion}`);
+  console.log(
+    `⚡ Auto-bumping Obsidian version (${typeToUse}): ${currentVersion} -> ${nextVersion}`,
+  );
 
   obsidianPkg.version = nextVersion;
-  fs.writeFileSync(obsidianPkgPath, JSON.stringify(obsidianPkg, null, 2) + "\n");
+  fs.writeFileSync(
+    obsidianPkgPath,
+    JSON.stringify(obsidianPkg, null, 2) + "\n",
+  );
 
   console.log("🔄 Syncing version to manifest.json and versions.json...");
   execSync("npm run sync:versions", { stdio: "inherit", cwd: rootDir });
@@ -63,7 +77,7 @@ if (bumpType || tagExists) {
   try {
     execSync(
       "git add packages/obsidian/package.json manifest.json versions.json packages/obsidian/manifest.json packages/obsidian/versions.json",
-      { cwd: rootDir }
+      { cwd: rootDir },
     );
     execSync(`git commit -m "🆕 obsidian ${nextVersion}"`, {
       stdio: "inherit",
@@ -81,7 +95,9 @@ console.log(`📦 Target Obsidian Plugin Version: ${currentVersion}`);
 
 // Run full pre-release validation suite
 try {
-  console.log("\n🔍 Running release validation checks (build, test, validate)...");
+  console.log(
+    "\n🔍 Running release validation checks (build, test, validate)...",
+  );
   execSync("npm run release:check", { stdio: "inherit", cwd: rootDir });
 } catch (err) {
   console.error("\n❌ Release check failed! Fix errors before publishing.");
@@ -96,8 +112,12 @@ try {
   console.log(`🚀 Pushing tag "${tag}" to GitHub...`);
   execSync(`git push origin ${tag}`, { stdio: "inherit", cwd: rootDir });
   console.log(`\n✨ Tag "${tag}" successfully pushed to GitHub!`);
-  console.log("🎉 GitHub Actions will now build and publish the GitHub Release automatically.");
-  console.log('Your package is being built, after release check for new release at "https://community.obsidian.md/account/plugins/md-discord-syntax"');
+  console.log(
+    "🎉 GitHub Actions will now build and publish the GitHub Release automatically.",
+  );
+  console.log(
+    'Your package is being built, after release check for new release at "https://community.obsidian.md/account/plugins/md-discord-syntax"',
+  );
 } catch (err) {
   console.error(`❌ Failed to create/push git tag: ${err.message}`);
   process.exit(1);

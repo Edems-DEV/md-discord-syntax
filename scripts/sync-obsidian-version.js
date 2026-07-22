@@ -6,7 +6,12 @@ const rootDir = path.resolve(__dirname, "..");
 console.log("🔄 Synchronizing Obsidian plugin version from package.json...");
 
 // 1. Read packages/obsidian/package.json
-const obsidianPkgPath = path.join(rootDir, "packages", "obsidian", "package.json");
+const obsidianPkgPath = path.join(
+  rootDir,
+  "packages",
+  "obsidian",
+  "package.json",
+);
 if (!fs.existsSync(obsidianPkgPath)) {
   console.error("❌ packages/obsidian/package.json not found!");
   process.exit(1);
@@ -16,7 +21,9 @@ const obsidianPkg = JSON.parse(fs.readFileSync(obsidianPkgPath, "utf8"));
 const newVersion = obsidianPkg.version;
 
 if (!newVersion) {
-  console.error("❌ packages/obsidian/package.json does not have a valid version!");
+  console.error(
+    "❌ packages/obsidian/package.json does not have a valid version!",
+  );
   process.exit(1);
 }
 
@@ -46,9 +53,21 @@ if (!versions[newVersion]) {
 }
 
 // 4. Synchronize to packages/obsidian/
-const nestedManifestPath = path.join(rootDir, "packages", "obsidian", "manifest.json");
-const nestedVersionsPath = path.join(rootDir, "packages", "obsidian", "versions.json");
+const nestedManifestPath = path.join(
+  rootDir,
+  "packages",
+  "obsidian",
+  "manifest.json",
+);
+const nestedVersionsPath = path.join(
+  rootDir,
+  "packages",
+  "obsidian",
+  "versions.json",
+);
 
 fs.writeFileSync(nestedManifestPath, JSON.stringify(manifest, null, 2) + "\n");
 fs.writeFileSync(nestedVersionsPath, JSON.stringify(versions, null, 2) + "\n");
-console.log("✅ Synchronized manifest.json and versions.json to packages/obsidian/");
+console.log(
+  "✅ Synchronized manifest.json and versions.json to packages/obsidian/",
+);

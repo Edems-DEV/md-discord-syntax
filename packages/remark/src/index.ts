@@ -97,13 +97,15 @@ export function remarkMdDiscordSyntax() {
                 "",
               );
 
-              const insideBlocks = children.slice(i, endIdx + 1).filter((block) => {
-                if (block.type === "paragraph" && block.children) {
-                  block.children = normalizeChildren(block.children);
-                  return block.children.length > 0;
-                }
-                return true;
-              });
+              const insideBlocks = children
+                .slice(i, endIdx + 1)
+                .filter((block) => {
+                  if (block.type === "paragraph" && block.children) {
+                    block.children = normalizeChildren(block.children);
+                    return block.children.length > 0;
+                  }
+                  return true;
+                });
 
               const spoilerBlock: UnistNode = {
                 type: "mdxJsxFlowElement",
@@ -114,7 +116,11 @@ export function remarkMdDiscordSyntax() {
                   _isGenerated: true,
                   hName: "div",
                   hProperties: {
-                    className: ["discord-syntax-spoiler", "discord-spoiler", "discord-spoiler-block"],
+                    className: [
+                      "discord-syntax-spoiler",
+                      "discord-spoiler",
+                      "discord-spoiler-block",
+                    ],
                     "data-spoiler": "true",
                     onclick: "this.classList.toggle('revealed')",
                   },

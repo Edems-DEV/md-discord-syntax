@@ -27,7 +27,10 @@ void test("Remark Discord Syntax Plugin", async (t) => {
     assert.strictEqual(spoiler.children![0].value, "secret message");
     assert.strictEqual(spoiler.data?._isGenerated, true);
     assert.strictEqual(spoiler.data?.hName, "span");
-    assert.strictEqual((spoiler.data?.hProperties as Record<string, string>)?.["data-spoiler"], "true");
+    assert.strictEqual(
+      (spoiler.data?.hProperties as Record<string, string>)?.["data-spoiler"],
+      "true",
+    );
   });
 
   await t.test("ignores delimiter text inside code", async () => {
@@ -75,14 +78,21 @@ void test("Remark Discord Syntax Plugin", async (t) => {
     },
   );
 
-  await t.test("leaves unmatched and spaced delimiters as raw text", async () => {
-    const input = "This line has || an incomplete spoiler marker and || spaced ||.";
-    const tree = processor.parse(input);
-    const newTree = (await processor.run(tree)) as unknown as TestNode;
+  await t.test(
+    "leaves unmatched and spaced delimiters as raw text",
+    async () => {
+      const input =
+        "This line has || an incomplete spoiler marker and || spaced ||.";
+      const tree = processor.parse(input);
+      const newTree = (await processor.run(tree)) as unknown as TestNode;
 
-    const p = newTree.children![0];
-    assert.strictEqual(p.children![0].value, "This line has || an incomplete spoiler marker and || spaced ||.");
-  });
+      const p = newTree.children![0];
+      assert.strictEqual(
+        p.children![0].value,
+        "This line has || an incomplete spoiler marker and || spaced ||.",
+      );
+    },
+  );
 
   await t.test("transforms multi-paragraph block spoilers", async () => {
     const input = "||\nFirst paragraph\n\nSecond paragraph\n||";
@@ -93,8 +103,14 @@ void test("Remark Discord Syntax Plugin", async (t) => {
     assert.strictEqual(spoilerBlock.type, "mdxJsxFlowElement");
     assert.strictEqual(spoilerBlock.name, "Spoiler");
     assert.strictEqual(spoilerBlock.children!.length, 2);
-    assert.strictEqual(spoilerBlock.children![0].children![0].value, "First paragraph");
-    assert.strictEqual(spoilerBlock.children![1].children![0].value, "Second paragraph");
+    assert.strictEqual(
+      spoilerBlock.children![0].children![0].value,
+      "First paragraph",
+    );
+    assert.strictEqual(
+      spoilerBlock.children![1].children![0].value,
+      "Second paragraph",
+    );
   });
 
   await t.test("ignores fenced code blocks", async () => {
@@ -167,40 +183,46 @@ void test("Remark Discord Syntax Plugin", async (t) => {
     },
   );
 
-  await t.test("transforms Discord subtext inside blockquotes / callouts", async () => {
-    const input = "> -# Subtext inside callout";
-    const tree = processor.parse(input);
-    const newTree = (await processor.run(tree)) as unknown as TestNode;
+  await t.test(
+    "transforms Discord subtext inside blockquotes / callouts",
+    async () => {
+      const input = "> -# Subtext inside callout";
+      const tree = processor.parse(input);
+      const newTree = (await processor.run(tree)) as unknown as TestNode;
 
-    const bq = newTree.children![0];
-    assert.strictEqual(bq.type, "blockquote");
-    const p = bq.children![0];
-    assert.strictEqual(p.type, "paragraph");
-    const span = p.children![0];
-    assert.strictEqual(span.type, "mdxJsxTextElement");
-    assert.strictEqual(span.name, "span");
-    assert.strictEqual(span.children![0].value, "Subtext inside callout");
-  });
+      const bq = newTree.children![0];
+      assert.strictEqual(bq.type, "blockquote");
+      const p = bq.children![0];
+      assert.strictEqual(p.type, "paragraph");
+      const span = p.children![0];
+      assert.strictEqual(span.type, "mdxJsxTextElement");
+      assert.strictEqual(span.name, "span");
+      assert.strictEqual(span.children![0].value, "Subtext inside callout");
+    },
+  );
 
-  await t.test("transforms Discord subtext inside unordered and ordered lists", async () => {
-    const input = "- -# Bullet subtext\n1. -# Numbered subtext";
-    const tree = processor.parse(input);
-    const newTree = (await processor.run(tree)) as unknown as TestNode;
+  await t.test(
+    "transforms Discord subtext inside unordered and ordered lists",
+    async () => {
+      const input = "- -# Bullet subtext\n1. -# Numbered subtext";
+      const tree = processor.parse(input);
+      const newTree = (await processor.run(tree)) as unknown as TestNode;
 
-    const list1 = newTree.children![0];
-    assert.strictEqual(list1.type, "list");
-    const item1Para = list1.children![0].children![0];
-    const span1 = item1Para.children![0];
-    assert.strictEqual(span1.type, "mdxJsxTextElement");
-    assert.strictEqual(span1.children![0].value, "Bullet subtext");
+      const list1 = newTree.children![0];
+      assert.strictEqual(list1.type, "list");
+      const item1Para = list1.children![0].children![0];
+      const span1 = item1Para.children![0];
+      assert.strictEqual(span1.type, "mdxJsxTextElement");
+      assert.strictEqual(span1.children![0].value, "Bullet subtext");
 
-    const list2 = newTree.children![1];
-    assert.strictEqual(list2.type, "list");
-    const item2Para = list2.children![0].children![0];
-    const span2 = item2Para.children![0];
-    assert.strictEqual(span2.type, "mdxJsxTextElement");
-    assert.strictEqual(span2.children![0].value, "Numbered subtext");
-  });
+      const list2 = newTree.children![1];
+      assert.strictEqual(list2.type, "list");
+      const item2Para = list2.children![0].children![0];
+      const span2 = item2Para.children![0];
+      assert.strictEqual(span2.type, "mdxJsxTextElement");
+      assert.strictEqual(span2.children![0].value, "Numbered subtext");
+    },
+  );
 
   await t.test("transforms indented subtext under list item", async () => {
     const input = "- Main item\n  -# Subtext under item";
@@ -217,4 +239,3 @@ void test("Remark Discord Syntax Plugin", async (t) => {
     assert.strictEqual(span.children![0].value, "Subtext under item");
   });
 });
-

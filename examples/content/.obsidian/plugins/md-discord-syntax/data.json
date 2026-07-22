@@ -1,0 +1,12 @@
+{
+  "enableSpoilers": true,
+  "enableSubtext": true,
+  "spoilerHiddenColor": "#36393f",
+  "spoilerRevealedColor": "#4f545c",
+  "spoilerTextColor": "#dcddde",
+  "spoilerRadius": 4,
+  "spoilerPadding": 4,
+  "subtextColor": "#72767d",
+  "subtextFontSize": 12,
+  "subtextOpacity": 0.75
+}

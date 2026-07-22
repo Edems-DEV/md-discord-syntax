@@ -9,7 +9,7 @@ const targetPluginDir = path.join(
   "content",
   ".obsidian",
   "plugins",
-  "md-discord-syntax"
+  "md-discord-syntax",
 );
 
 if (!fs.existsSync(targetPluginDir)) {
@@ -23,7 +23,9 @@ for (const file of filesToCopy) {
   const dest = path.join(targetPluginDir, file);
   if (fs.existsSync(src)) {
     fs.copyFileSync(src, dest);
-    console.log(`Synced ${file} -> examples/content/.obsidian/plugins/md-discord-syntax/${file}`);
+    console.log(
+      `Synced ${file} -> examples/content/.obsidian/plugins/md-discord-syntax/${file}`,
+    );
   } else {
     console.warn(`Warning: ${src} does not exist. Run obsidian build first.`);
   }
@@ -45,12 +47,25 @@ function copyDirRecursive(srcDir, destDir) {
   }
 }
 
-const nextjsNodeModules = path.join(rootDir, "examples", "nextjs", "node_modules", "@edems-dev");
+const nextjsNodeModules = path.join(
+  rootDir,
+  "examples",
+  "nextjs",
+  "node_modules",
+  "@edems-dev",
+);
 if (fs.existsSync(nextjsNodeModules)) {
   const coreDist = path.join(rootDir, "packages", "core", "dist");
   const remarkDist = path.join(rootDir, "packages", "remark", "dist");
-  copyDirRecursive(coreDist, path.join(nextjsNodeModules, "md-discord-syntax-core", "dist"));
-  copyDirRecursive(remarkDist, path.join(nextjsNodeModules, "remark-discord-syntax", "dist"));
-  console.log("Synced packages/core and packages/remark build outputs to examples/nextjs/node_modules/@edems-dev");
+  copyDirRecursive(
+    coreDist,
+    path.join(nextjsNodeModules, "md-discord-syntax-core", "dist"),
+  );
+  copyDirRecursive(
+    remarkDist,
+    path.join(nextjsNodeModules, "remark-discord-syntax", "dist"),
+  );
+  console.log(
+    "Synced packages/core and packages/remark build outputs to examples/nextjs/node_modules/@edems-dev",
+  );
 }
-

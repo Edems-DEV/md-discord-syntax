@@ -7,7 +7,9 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   margin: 0;
   padding: 2rem;
   line-height: 1.6;
@@ -38,7 +40,9 @@ span[data-subtext="true"] {
   padding: 0 4px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   display: inline;
 }
 

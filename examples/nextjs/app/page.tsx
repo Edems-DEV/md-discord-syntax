@@ -18,8 +18,11 @@ async function getRenderedContent() {
   let html = processed.toString();
 
   // Clean up any legacy <Spoiler> tags if present without introducing extra line breaks
-  html = html.replace(/\n?<Spoiler>\n?/g, '<span class="discord-syntax-spoiler" data-spoiler="true" onclick="this.classList.toggle(\'revealed\')">');
-  html = html.replace(/\n?<\/Spoiler>\n?/g, '</span>');
+  html = html.replace(
+    /\n?<Spoiler>\n?/g,
+    '<span class="discord-syntax-spoiler" data-spoiler="true" onclick="this.classList.toggle(\'revealed\')">',
+  );
+  html = html.replace(/\n?<\/Spoiler>\n?/g, "</span>");
 
   return html;
 }
@@ -29,10 +32,17 @@ export default async function HomePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: "2rem", borderBottom: "1px solid #3f4147", paddingBottom: "1rem" }}>
+      <header
+        style={{
+          marginBottom: "2rem",
+          borderBottom: "1px solid #3f4147",
+          paddingBottom: "1rem",
+        }}
+      >
         <h1>Next.js Remark Discord Syntax Test</h1>
         <p style={{ color: "#949ba4" }}>
-          Rendering shared <code>examples/content/test.md</code> using <code>@edems-dev/remark-discord-syntax</code>.
+          Rendering shared <code>examples/content/test.md</code> using{" "}
+          <code>@edems-dev/remark-discord-syntax</code>.
         </p>
       </header>
       <article dangerouslySetInnerHTML={{ __html: htmlContent }} />

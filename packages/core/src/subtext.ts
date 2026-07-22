@@ -40,10 +40,7 @@ export function stripSubtextPrefix(lineText: string): string {
 }
 
 export function hasSubtextMarker(text: string): boolean {
-  return (
-    /(?:^|\n)(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|-\s*\[[ xX]\])\s+)?\s*-# /.test(
-      text,
-    )
+  return /(?:^|\n)(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|-\s*\[[ xX]\])\s+)?\s*-# /.test(
+    text,
   );
 }
-
