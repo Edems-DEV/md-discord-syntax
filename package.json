@@ -28,6 +28,13 @@
     "publish:core": "npm run release:check && npm publish -w @edems-dev/md-discord-syntax-core",
     "publish:remark": "npm run release:check && npm publish -w @edems-dev/remark-discord-syntax",
     "publish:obsidian": "node scripts/publish-obsidian.js",
+    "publish:obsidian:patch": "node scripts/publish-obsidian.js --patch",
+    "publish:obsidian:minor": "node scripts/publish-obsidian.js --minor",
+    "publish:obsidian:major": "node scripts/publish-obsidian.js --major",
+    "bump:obsidian": "node scripts/bump-obsidian.js",
+    "bump:obsidian:patch": "node scripts/bump-obsidian.js --patch",
+    "bump:obsidian:minor": "node scripts/bump-obsidian.js --minor",
+    "bump:obsidian:major": "node scripts/bump-obsidian.js --major",
     "prepare": "husky"
   },
   "author": "Edems-DEV",
