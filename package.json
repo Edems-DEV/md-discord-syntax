@@ -18,11 +18,17 @@
     "pretypecheck": "npm run build -w @edems-dev/md-discord-syntax-core",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate": "node scripts/validate.js",
-    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css,yml,yaml}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css,yml,yaml}\"",
+    "sync:versions": "node scripts/sync-obsidian-version.js",
+    "changeset": "changeset",
+    "version": "changeset version && npm run sync:versions",
+    "release:check": "npm run build && npm test && npm run sync:versions && npm run validate",
+    "release:npm": "npm run release:check && changeset publish"
   },
   "author": "Edems-DEV",
   "license": "GPL-3.0",
   "devDependencies": {
+    "@changesets/cli": "^2.31.1",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.7.0",
     "prettier": "^3.3.0",
