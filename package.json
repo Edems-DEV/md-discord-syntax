@@ -27,7 +27,7 @@
     "publish:all": "npm run release:npm",
     "publish:core": "npm run release:check && npm publish -w @edems-dev/md-discord-syntax-core",
     "publish:remark": "npm run release:check && npm publish -w @edems-dev/remark-discord-syntax",
-    "publish:obsidian": "npm run release:check",
+    "publish:obsidian": "node scripts/publish-obsidian.js",
     "prepare": "husky"
   },
   "author": "Edems-DEV",
