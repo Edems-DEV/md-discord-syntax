@@ -36,9 +36,43 @@ void test("Core Spoiler & Subtext Syntax Rules", async (t) => {
     );
   });
 
-  await t.test("ignores unclosed delimiters and empty spoilers", () => {
+  await t.test("ignores unclosed delimiters, spaced delimiters, and empty spoilers", () => {
     assert.strictEqual(findSpoilerRanges("||unclosed text").length, 0);
+    assert.strictEqual(findSpoilerRanges("This line has || an incomplete spoiler marker.").length, 0);
     assert.strictEqual(findSpoilerRanges("||||").length, 0);
+    assert.strictEqual(findSpoilerRanges("|| spaced ||").length, 0);
+    assert.strictEqual(findSpoilerRanges("||left space ||").length, 0);
+    assert.strictEqual(findSpoilerRanges("|| right space||").length, 0);
+  });
+
+  await t.test("detects glued inline spoilers with internal spaces and punctuation", () => {
+    const text = "||glued|| and ||glued with spaces inside|| and ||glued with punctuation!||";
+    const spoilers = findSpoilerRanges(text);
+    assert.strictEqual(spoilers.length, 3);
+    assert.strictEqual(text.slice(spoilers[0].from, spoilers[0].to), "||glued||");
+    assert.strictEqual(text.slice(spoilers[1].from, spoilers[1].to), "||glued with spaces inside||");
+    assert.strictEqual(text.slice(spoilers[2].from, spoilers[2].to), "||glued with punctuation!||");
+  });
+
+  await t.test("detects multi-paragraph block spoilers", () => {
+    const text = "||\nFirst paragraph\n\nSecond paragraph\n||";
+    const spoilers = findSpoilerRanges(text);
+    assert.strictEqual(spoilers.length, 1);
+    assert.strictEqual(spoilers[0].isBlock, true);
+    assert.strictEqual(text.slice(spoilers[0].from, spoilers[0].to), "||\nFirst paragraph\n\nSecond paragraph\n||");
+  });
+
+  await t.test("rejects cross-paragraph inline spoilers", () => {
+    const text = "Paragraph 1 ||inline\n\nParagraph 2 inline||";
+    const spoilers = findSpoilerRanges(text);
+    assert.strictEqual(spoilers.length, 0);
+  });
+
+  await t.test("ignores escaped delimiters", () => {
+    const text = "Here is \\||not a spoiler\\|| and ||real spoiler||";
+    const spoilers = findSpoilerRanges(text);
+    assert.strictEqual(spoilers.length, 1);
+    assert.strictEqual(text.slice(spoilers[0].from, spoilers[0].to), "||real spoiler||");
   });
 
   await t.test("detects spoiler containing inline code", () => {

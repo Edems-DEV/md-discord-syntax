@@ -59,7 +59,7 @@ void test("Remark Discord Syntax Plugin", async (t) => {
   await t.test(
     "transforms discord-style spoilers with nested formatting and inline code",
     async () => {
-      const input = "|| hidden *italic*, `inline code`, **bold** ||";
+      const input = "||hidden *italic*, `inline code`, **bold**||";
       const tree = processor.parse(input);
       const newTree = (await processor.run(tree)) as unknown as TestNode;
 
@@ -67,13 +67,35 @@ void test("Remark Discord Syntax Plugin", async (t) => {
       const spoiler = p.children![0];
       assert.strictEqual(spoiler.type, "mdxJsxTextElement");
       assert.strictEqual(spoiler.name, "Spoiler");
-      assert.strictEqual(spoiler.children![0].value, " hidden ");
+      assert.strictEqual(spoiler.children![0].value, "hidden ");
       assert.strictEqual(spoiler.children![1].type, "emphasis");
       assert.strictEqual(spoiler.children![3].type, "inlineCode");
       assert.strictEqual(spoiler.children![3].value, "inline code");
       assert.strictEqual(spoiler.children![5].type, "strong");
     },
   );
+
+  await t.test("leaves unmatched and spaced delimiters as raw text", async () => {
+    const input = "This line has || an incomplete spoiler marker and || spaced ||.";
+    const tree = processor.parse(input);
+    const newTree = (await processor.run(tree)) as unknown as TestNode;
+
+    const p = newTree.children![0];
+    assert.strictEqual(p.children![0].value, "This line has || an incomplete spoiler marker and || spaced ||.");
+  });
+
+  await t.test("transforms multi-paragraph block spoilers", async () => {
+    const input = "||\nFirst paragraph\n\nSecond paragraph\n||";
+    const tree = processor.parse(input);
+    const newTree = (await processor.run(tree)) as unknown as TestNode;
+
+    const spoilerBlock = newTree.children![0];
+    assert.strictEqual(spoilerBlock.type, "mdxJsxFlowElement");
+    assert.strictEqual(spoilerBlock.name, "Spoiler");
+    assert.strictEqual(spoilerBlock.children!.length, 2);
+    assert.strictEqual(spoilerBlock.children![0].children![0].value, "First paragraph");
+    assert.strictEqual(spoilerBlock.children![1].children![0].value, "Second paragraph");
+  });
 
   await t.test("ignores fenced code blocks", async () => {
     const input = "```\nconst x = ||not a spoiler||;\n```";

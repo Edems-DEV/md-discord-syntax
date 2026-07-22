@@ -1,7 +1,19 @@
+import { findSpoilerRanges } from "@edems-dev/md-discord-syntax-core";
+
 export function processSpoilers(
   element: HTMLElement,
   doc: Document = element.ownerDocument,
 ): void {
+  const fullText = element.textContent || "";
+  const validRanges = findSpoilerRanges(fullText);
+  if (validRanges.length === 0) return;
+
+  const validPositions = new Set<number>();
+  for (const r of validRanges) {
+    validPositions.add(r.from);
+    validPositions.add(r.to - 2);
+  }
+
   function createSpoilerSpan(): HTMLSpanElement {
     const spoilerSpan = element.createEl("span", {
       cls: "note-flow-spoiler discord-syntax-spoiler",
@@ -50,6 +62,7 @@ export function processSpoilers(
   }
 
   const markers: (HTMLSpanElement | null)[] = [];
+  let currentPos = 0;
 
   function insertMarker(
     parent: Node,
@@ -83,15 +96,16 @@ export function processSpoilers(
   function collectMarkers(node: Node): void {
     if (node.nodeType === Node.TEXT_NODE) {
       let text = node.nodeValue || "";
-      let idx = text.indexOf("||");
+      let searchFrom = 0;
+      let idx = text.indexOf("||", searchFrom);
+
       if (idx !== -1 && node.parentNode) {
         const parent = node.parentNode;
-        let remainingNode = insertMarker(parent, node, text, idx);
-        parent.removeChild(node);
-        while (remainingNode) {
-          text = remainingNode.nodeValue || "";
-          idx = text.indexOf("||");
-          if (idx !== -1) {
+        let remainingNode: Text | null = node as Text;
+
+        while (remainingNode && idx !== -1) {
+          const absPos = currentPos + idx;
+          if (validPositions.has(absPos)) {
             const nextRemaining = insertMarker(
               parent,
               remainingNode,
@@ -100,10 +114,20 @@ export function processSpoilers(
             );
             parent.removeChild(remainingNode);
             remainingNode = nextRemaining;
+            currentPos = absPos + 2;
+            text = remainingNode ? remainingNode.nodeValue || "" : "";
+            searchFrom = 0;
+            idx = text ? text.indexOf("||", searchFrom) : -1;
           } else {
-            remainingNode = null;
+            searchFrom = idx + 2;
+            idx = text.indexOf("||", searchFrom);
           }
         }
+        if (remainingNode) {
+          currentPos += (remainingNode.nodeValue || "").length;
+        }
+      } else {
+        currentPos += text.length;
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node as Element;

@@ -31,8 +31,204 @@ module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
 var import_view3 = require("@codemirror/view");
 
+// ../core/dist/spoiler.js
+function isEscaped(text, pos) {
+  let count = 0;
+  for (let i = pos - 1; i >= 0 && text[i] === "\\"; i--) {
+    count++;
+  }
+  return count % 2 === 1;
+}
+function findCodeRanges(text) {
+  const codeRanges = [];
+  if (!text)
+    return codeRanges;
+  const lines = text.split("\n");
+  let currentOffset = 0;
+  let inFence = false;
+  let fenceChar = "";
+  let fenceLen = 0;
+  let fenceStart = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineStart = currentOffset;
+    const lineEnd = currentOffset + line.length;
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const matchStr = fenceMatch[1];
+      const char = matchStr[0];
+      const len = matchStr.length;
+      if (!inFence) {
+        inFence = true;
+        fenceChar = char;
+        fenceLen = len;
+        fenceStart = lineStart;
+      } else if (char === fenceChar && len >= fenceLen) {
+        inFence = false;
+        codeRanges.push({ from: fenceStart, to: lineEnd, isFenced: true });
+      }
+    }
+    if (inFence && i === lines.length - 1) {
+      codeRanges.push({ from: fenceStart, to: lineEnd, isFenced: true });
+    }
+    currentOffset = lineEnd + 1;
+  }
+  currentOffset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineStart = currentOffset;
+    const lineEnd = currentOffset + line.length;
+    const isLineInFence = codeRanges.some((r) => lineStart >= r.from && lineEnd <= r.to);
+    if (!isLineInFence) {
+      const backtickRegex = /(`+)/g;
+      let match;
+      let openBacktick = null;
+      while ((match = backtickRegex.exec(line)) !== null) {
+        const len = match[1].length;
+        const index = lineStart + match.index;
+        if (!openBacktick) {
+          openBacktick = { len, index };
+        } else if (openBacktick.len === len) {
+          codeRanges.push({
+            from: openBacktick.index,
+            to: index + len,
+            isFenced: false
+          });
+          openBacktick = null;
+        }
+      }
+    }
+    currentOffset = lineEnd + 1;
+  }
+  return codeRanges;
+}
+function isPosInCode(pos, codeRanges) {
+  return codeRanges.some((r) => pos >= r.from && pos < r.to);
+}
+function findSpoilerRanges(text, baseOffset = 0) {
+  const spoilers = [];
+  if (!text || text.length < 4)
+    return spoilers;
+  const codeRanges = findCodeRanges(text);
+  const isCode = (pos) => isPosInCode(pos, codeRanges);
+  const blockRanges = [];
+  const lines = text.split("\n");
+  let currentOffset = 0;
+  let blockStart = null;
+  for (let i2 = 0; i2 < lines.length; i2++) {
+    const line = lines[i2];
+    const lineStart = currentOffset;
+    const lineEnd = lineStart + line.length;
+    currentOffset = lineEnd + 1;
+    if (isCode(lineStart))
+      continue;
+    const blockMarkerMatch = line.match(/^\s*(\|\|)\s*$/);
+    if (blockMarkerMatch) {
+      const markerPos = lineStart + line.indexOf("||");
+      if (!isCode(markerPos) && !isEscaped(text, markerPos)) {
+        if (blockStart === null) {
+          blockStart = {
+            lineIdx: i2,
+            offset: markerPos,
+            contentFrom: lineEnd + 1 <= text.length ? lineEnd + 1 : lineEnd
+          };
+        } else {
+          const contentTo = lineStart;
+          spoilers.push({
+            from: baseOffset + blockStart.offset,
+            to: baseOffset + markerPos + 2,
+            contentFrom: baseOffset + blockStart.contentFrom,
+            contentTo: baseOffset + contentTo,
+            isBlock: true
+          });
+          blockRanges.push({
+            from: blockStart.offset,
+            to: markerPos + 2
+          });
+          blockStart = null;
+        }
+      }
+    }
+  }
+  const isInBlock = (pos) => blockRanges.some((r) => pos >= r.from && pos < r.to);
+  let idx = text.indexOf("||");
+  const candidates = [];
+  while (idx !== -1) {
+    if (!isCode(idx) && !isCode(idx + 1) && !isInBlock(idx) && !isEscaped(text, idx)) {
+      candidates.push(idx);
+    }
+    idx = text.indexOf("||", idx + 2);
+  }
+  let i = 0;
+  while (i < candidates.length - 1) {
+    const startIdx = candidates[i];
+    const nextChar = text[startIdx + 2];
+    if (!nextChar || /\s/.test(nextChar)) {
+      i++;
+      continue;
+    }
+    let foundMatch = false;
+    for (let j = i + 1; j < candidates.length; j++) {
+      const endIdx = candidates[j];
+      const prevChar = text[endIdx - 1];
+      if (/\s/.test(prevChar)) {
+        continue;
+      }
+      const content = text.slice(startIdx + 2, endIdx);
+      if (content.includes("\n\n") || content.includes("\r\n\r\n")) {
+        break;
+      }
+      const crossesFencedCode = codeRanges.some((r) => r.isFenced && startIdx < r.from && endIdx > r.to);
+      if (crossesFencedCode) {
+        continue;
+      }
+      if (content.length > 0) {
+        spoilers.push({
+          from: baseOffset + startIdx,
+          to: baseOffset + endIdx + 2,
+          contentFrom: baseOffset + startIdx + 2,
+          contentTo: baseOffset + endIdx,
+          isBlock: false
+        });
+        i = j + 1;
+        foundMatch = true;
+        break;
+      }
+    }
+    if (!foundMatch) {
+      i++;
+    }
+  }
+  spoilers.sort((a, b) => a.from - b.from);
+  return spoilers;
+}
+
+// ../core/dist/subtext.js
+var SUBTEXT_MARKER = "-# ";
+var SUBTEXT_MARKER_LEN = SUBTEXT_MARKER.length;
+function isSubtextLine(lineText) {
+  return lineText.startsWith(SUBTEXT_MARKER);
+}
+function stripSubtextPrefix(lineText) {
+  if (isSubtextLine(lineText)) {
+    return lineText.slice(SUBTEXT_MARKER_LEN);
+  }
+  return lineText;
+}
+function hasSubtextMarker(text) {
+  return /(?:^|\n)-# /.test(text);
+}
+
 // src/spoiler-post-processor.ts
 function processSpoilers(element, doc = element.ownerDocument) {
+  const fullText = element.textContent || "";
+  const validRanges = findSpoilerRanges(fullText);
+  if (validRanges.length === 0) return;
+  const validPositions = /* @__PURE__ */ new Set();
+  for (const r of validRanges) {
+    validPositions.add(r.from);
+    validPositions.add(r.to - 2);
+  }
   function createSpoilerSpan() {
     const spoilerSpan = element.createEl("span", {
       cls: "note-flow-spoiler discord-syntax-spoiler",
@@ -77,6 +273,7 @@ function processSpoilers(element, doc = element.ownerDocument) {
     return spoilerSpan;
   }
   const markers = [];
+  let currentPos = 0;
   function insertMarker(parent, node, text, index) {
     const beforeStr = text.slice(0, index);
     const afterStr = text.slice(index + 2);
@@ -101,15 +298,14 @@ function processSpoilers(element, doc = element.ownerDocument) {
   function collectMarkers(node) {
     if (node.nodeType === Node.TEXT_NODE) {
       let text = node.nodeValue || "";
-      let idx = text.indexOf("||");
+      let searchFrom = 0;
+      let idx = text.indexOf("||", searchFrom);
       if (idx !== -1 && node.parentNode) {
         const parent = node.parentNode;
-        let remainingNode = insertMarker(parent, node, text, idx);
-        parent.removeChild(node);
-        while (remainingNode) {
-          text = remainingNode.nodeValue || "";
-          idx = text.indexOf("||");
-          if (idx !== -1) {
+        let remainingNode = node;
+        while (remainingNode && idx !== -1) {
+          const absPos = currentPos + idx;
+          if (validPositions.has(absPos)) {
             const nextRemaining = insertMarker(
               parent,
               remainingNode,
@@ -118,10 +314,20 @@ function processSpoilers(element, doc = element.ownerDocument) {
             );
             parent.removeChild(remainingNode);
             remainingNode = nextRemaining;
+            currentPos = absPos + 2;
+            text = remainingNode ? remainingNode.nodeValue || "" : "";
+            searchFrom = 0;
+            idx = text ? text.indexOf("||", searchFrom) : -1;
           } else {
-            remainingNode = null;
+            searchFrom = idx + 2;
+            idx = text.indexOf("||", searchFrom);
           }
         }
+        if (remainingNode) {
+          currentPos += (remainingNode.nodeValue || "").length;
+        }
+      } else {
+        currentPos += text.length;
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node;
@@ -194,126 +400,6 @@ function processSpoilers(element, doc = element.ownerDocument) {
 // src/spoiler-detector.ts
 var import_view = require("@codemirror/view");
 var import_state = require("@codemirror/state");
-
-// ../core/dist/spoiler.js
-function findCodeRanges(text) {
-  const codeRanges = [];
-  if (!text)
-    return codeRanges;
-  const lines = text.split("\n");
-  let currentOffset = 0;
-  let inFence = false;
-  let fenceChar = "";
-  let fenceLen = 0;
-  let fenceStart = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineStart = currentOffset;
-    const lineEnd = currentOffset + line.length;
-    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
-    if (fenceMatch) {
-      const matchStr = fenceMatch[1];
-      const char = matchStr[0];
-      const len = matchStr.length;
-      if (!inFence) {
-        inFence = true;
-        fenceChar = char;
-        fenceLen = len;
-        fenceStart = lineStart;
-      } else if (char === fenceChar && len >= fenceLen) {
-        inFence = false;
-        codeRanges.push({ from: fenceStart, to: lineEnd, isFenced: true });
-      }
-    }
-    if (inFence && i === lines.length - 1) {
-      codeRanges.push({ from: fenceStart, to: lineEnd, isFenced: true });
-    }
-    currentOffset = lineEnd + 1;
-  }
-  currentOffset = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineStart = currentOffset;
-    const lineEnd = currentOffset + line.length;
-    const isLineInFence = codeRanges.some((r) => lineStart >= r.from && lineEnd <= r.to);
-    if (!isLineInFence) {
-      const backtickRegex = /(`+)/g;
-      let match;
-      let openBacktick = null;
-      while ((match = backtickRegex.exec(line)) !== null) {
-        const len = match[1].length;
-        const index = lineStart + match.index;
-        if (!openBacktick) {
-          openBacktick = { len, index };
-        } else if (openBacktick.len === len) {
-          codeRanges.push({
-            from: openBacktick.index,
-            to: index + len,
-            isFenced: false
-          });
-          openBacktick = null;
-        }
-      }
-    }
-    currentOffset = lineEnd + 1;
-  }
-  return codeRanges;
-}
-function isPosInCode(pos, codeRanges) {
-  return codeRanges.some((r) => pos >= r.from && pos < r.to);
-}
-function findSpoilerRanges(text, baseOffset = 0) {
-  const spoilers = [];
-  if (!text || text.length < 5)
-    return spoilers;
-  const codeRanges = findCodeRanges(text);
-  const isCode = (pos) => isPosInCode(pos, codeRanges);
-  const delimiterIndices = [];
-  let idx = text.indexOf("||");
-  while (idx !== -1) {
-    if (!isCode(idx) && !isCode(idx + 1)) {
-      delimiterIndices.push(idx);
-    }
-    idx = text.indexOf("||", idx + 2);
-  }
-  let i = 0;
-  while (i < delimiterIndices.length - 1) {
-    const startIdx = delimiterIndices[i];
-    const endIdx = delimiterIndices[i + 1];
-    const content = text.slice(startIdx + 2, endIdx);
-    const crossesFencedCode = codeRanges.some((r) => r.isFenced && startIdx < r.from && endIdx > r.to);
-    if (!crossesFencedCode && content.length > 0) {
-      spoilers.push({
-        from: baseOffset + startIdx,
-        to: baseOffset + endIdx + 2,
-        contentFrom: baseOffset + startIdx + 2,
-        contentTo: baseOffset + endIdx
-      });
-      i += 2;
-    } else {
-      i += 1;
-    }
-  }
-  return spoilers;
-}
-
-// ../core/dist/subtext.js
-var SUBTEXT_MARKER = "-# ";
-var SUBTEXT_MARKER_LEN = SUBTEXT_MARKER.length;
-function isSubtextLine(lineText) {
-  return lineText.startsWith(SUBTEXT_MARKER);
-}
-function stripSubtextPrefix(lineText) {
-  if (isSubtextLine(lineText)) {
-    return lineText.slice(SUBTEXT_MARKER_LEN);
-  }
-  return lineText;
-}
-function hasSubtextMarker(text) {
-  return /(?:^|\n)-# /.test(text);
-}
-
-// src/spoiler-detector.ts
 function getEditorLivePreviewField() {
   try {
     const obs = require("obsidian");
@@ -347,6 +433,20 @@ var spoilerStateField = import_state.StateField.define({
     return mapped;
   }
 });
+function isSelectionInSpoiler(state, from, to) {
+  for (const range of state.selection.ranges) {
+    if (range.empty) {
+      if (range.head >= from && range.head < to) {
+        return true;
+      }
+    } else {
+      if (range.from < to && range.to > from) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 function getSpoilerState(state, from, to) {
   const livePreviewField = getEditorLivePreviewField();
   if (livePreviewField) {
@@ -499,6 +599,9 @@ function buildSpoilerDecorations(view) {
       spoilerIndex++;
       const spoilerState = getSpoilerState(state, spoiler.from, spoiler.to);
       if (spoilerState === "editing") {
+        continue;
+      }
+      if (isSelectionInSpoiler(state, spoiler.from, spoiler.to)) {
         continue;
       }
       if (isRangeInCodeNode(state, spoiler.from, spoiler.to)) {
@@ -670,6 +773,19 @@ var spoilerLivePreviewPlugin = import_view.ViewPlugin.fromClass(
                       state: "editing"
                     }),
                     selection: { anchor: spoiler.contentFrom },
+                    scrollIntoView: true
+                  });
+                  view.focus();
+                  return true;
+                } else if (currentState === "editing") {
+                  event.preventDefault();
+                  view.dispatch({
+                    effects: setSpoilerStateEffect.of({
+                      from: spoiler.from,
+                      to: spoiler.to,
+                      state: "hidden"
+                    }),
+                    selection: { anchor: spoiler.to },
                     scrollIntoView: true
                   });
                   view.focus();

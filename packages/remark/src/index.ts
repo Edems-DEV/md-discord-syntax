@@ -1,5 +1,6 @@
 import { visit } from "unist-util-visit";
 import {
+  findSpoilerRanges,
   hasSubtextMarker,
   isSubtextLine,
   stripSubtextPrefix,
@@ -31,9 +32,106 @@ function normalizeChildren(nodes?: UnistNode[]): UnistNode[] {
   return result;
 }
 
+function getTextContent(node: UnistNode): string {
+  if (node.type === "text") return node.value || "";
+  if (node.type === "inlineCode") return "`" + (node.value || "") + "`";
+  if (Array.isArray(node.children)) {
+    return node.children.map(getTextContent).join("");
+  }
+  return "";
+}
+
 export function remarkMdDiscordSyntax() {
   return (tree: UnistNode) => {
-    // 1. Spoilers
+    // 0. Multi-paragraph Block Spoilers at root level
+    if (tree.type === "root" && Array.isArray(tree.children)) {
+      const children = tree.children;
+      let i = 0;
+      while (i < children.length) {
+        const first = children[i];
+        if (
+          first &&
+          first.type === "paragraph" &&
+          first.children &&
+          first.children.length > 0 &&
+          first.children[0].type === "text" &&
+          first.children[0].value
+        ) {
+          const firstVal = first.children[0].value;
+          if (/^\s*\|\|\s*(\n|$)/.test(firstVal)) {
+            // Found block spoiler start candidate
+            let endIdx = -1;
+            for (let j = i + 1; j < children.length; j++) {
+              const last = children[j];
+              if (
+                last &&
+                last.type === "paragraph" &&
+                last.children &&
+                last.children.length > 0
+              ) {
+                const lastTextNode = last.children[last.children.length - 1];
+                if (
+                  lastTextNode &&
+                  lastTextNode.type === "text" &&
+                  lastTextNode.value &&
+                  /(\n|^)\s*\|\|\s*$/.test(lastTextNode.value)
+                ) {
+                  endIdx = j;
+                  break;
+                }
+              }
+            }
+
+            if (endIdx !== -1) {
+              // Strip opening || from first paragraph
+              first.children[0].value = first.children[0].value.replace(
+                /^\s*\|\|\s*\n?/,
+                "",
+              );
+              // Strip closing || from last paragraph
+              const lastPara = children[endIdx];
+              const lastTextNode =
+                lastPara.children![lastPara.children!.length - 1];
+              lastTextNode.value = lastTextNode.value!.replace(
+                /\n?\s*\|\|\s*$/,
+                "",
+              );
+
+              const insideBlocks = children.slice(i, endIdx + 1).filter((block) => {
+                if (block.type === "paragraph" && block.children) {
+                  block.children = normalizeChildren(block.children);
+                  return block.children.length > 0;
+                }
+                return true;
+              });
+
+              const spoilerBlock: UnistNode = {
+                type: "mdxJsxFlowElement",
+                name: "Spoiler",
+                attributes: [],
+                children: insideBlocks,
+                data: {
+                  _isGenerated: true,
+                  hName: "div",
+                  hProperties: {
+                    className: ["discord-syntax-spoiler", "discord-spoiler", "discord-spoiler-block"],
+                    "data-spoiler": "true",
+                    onclick: "this.classList.toggle('revealed')",
+                  },
+                },
+              };
+
+              children.splice(i, endIdx - i + 1, spoilerBlock);
+              i++;
+              continue;
+            }
+          }
+        }
+        i++;
+      }
+    }
+
+    // 1. Spoilers (Inline)
     visit(tree, (node: UnistNode) => {
       if (
         !node.children ||
@@ -49,8 +147,28 @@ export function remarkMdDiscordSyntax() {
       )
         return;
 
+      // Construct full text and mapping for marker validation
+      let fullText = "";
+      for (const child of node.children) {
+        fullText += getTextContent(child);
+      }
+
+      const validRanges = findSpoilerRanges(fullText);
+      if (validRanges.length === 0) return;
+
+      const validPositions = new Set<number>();
+      for (const r of validRanges) {
+        if (!r.isBlock) {
+          validPositions.add(r.from);
+          validPositions.add(r.to - 2);
+        }
+      }
+
+      if (validPositions.size === 0) return;
+
       const expanded: UnistNode[] = [];
       let hasMarker = false;
+      let currentOffset = 0;
 
       for (const child of node.children) {
         if (
@@ -59,17 +177,28 @@ export function remarkMdDiscordSyntax() {
           child.value.includes("||")
         ) {
           let text = child.value;
-          let idx = text.indexOf("||");
+          let searchFrom = 0;
+          let idx = text.indexOf("||", searchFrom);
           while (idx !== -1) {
-            const before = text.slice(0, idx);
-            if (before) expanded.push({ type: "text", value: before });
-            expanded.push({ type: "spoiler-marker" });
-            hasMarker = true;
-            text = text.slice(idx + 2);
-            idx = text.indexOf("||");
+            const absPos = currentOffset + idx;
+            if (validPositions.has(absPos)) {
+              const before = text.slice(0, idx);
+              if (before) expanded.push({ type: "text", value: before });
+              expanded.push({ type: "spoiler-marker" });
+              hasMarker = true;
+              text = text.slice(idx + 2);
+              currentOffset = absPos + 2;
+              searchFrom = 0;
+              idx = text.indexOf("||", searchFrom);
+            } else {
+              searchFrom = idx + 2;
+              idx = text.indexOf("||", searchFrom);
+            }
           }
           if (text) expanded.push({ type: "text", value: text });
+          currentOffset += text.length;
         } else {
+          currentOffset += getTextContent(child).length;
           expanded.push(child);
         }
       }

@@ -9,6 +9,15 @@ export interface SpoilerRange {
   to: number;
   contentFrom: number;
   contentTo: number;
+  isBlock?: boolean;
+}
+
+export function isEscaped(text: string, pos: number): boolean {
+  let count = 0;
+  for (let i = pos - 1; i >= 0 && text[i] === "\\"; i--) {
+    count++;
+  }
+  return count % 2 === 1;
 }
 
 export function findCodeRanges(text: string): CodeRange[] {
@@ -98,42 +107,127 @@ export function findSpoilerRanges(
   baseOffset = 0,
 ): SpoilerRange[] {
   const spoilers: SpoilerRange[] = [];
-  if (!text || text.length < 5) return spoilers;
+  if (!text || text.length < 4) return spoilers;
 
   const codeRanges = findCodeRanges(text);
   const isCode = (pos: number) => isPosInCode(pos, codeRanges);
 
-  const delimiterIndices: number[] = [];
+  const blockRanges: { from: number; to: number }[] = [];
+
+  // Pass 1: Standalone block spoilers (|| on line by itself)
+  const lines = text.split("\n");
+  let currentOffset = 0;
+  let blockStart: { lineIdx: number; offset: number; contentFrom: number } | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineStart = currentOffset;
+    const lineEnd = lineStart + line.length;
+    currentOffset = lineEnd + 1;
+
+    if (isCode(lineStart)) continue;
+
+    const blockMarkerMatch = line.match(/^\s*(\|\|)\s*$/);
+    if (blockMarkerMatch) {
+      const markerPos = lineStart + line.indexOf("||");
+      if (!isCode(markerPos) && !isEscaped(text, markerPos)) {
+        if (blockStart === null) {
+          blockStart = {
+            lineIdx: i,
+            offset: markerPos,
+            contentFrom: lineEnd + 1 <= text.length ? lineEnd + 1 : lineEnd,
+          };
+        } else {
+          const contentTo = lineStart;
+          spoilers.push({
+            from: baseOffset + blockStart.offset,
+            to: baseOffset + markerPos + 2,
+            contentFrom: baseOffset + blockStart.contentFrom,
+            contentTo: baseOffset + contentTo,
+            isBlock: true,
+          });
+          blockRanges.push({
+            from: blockStart.offset,
+            to: markerPos + 2,
+          });
+          blockStart = null;
+        }
+      }
+    }
+  }
+
+  const isInBlock = (pos: number) =>
+    blockRanges.some((r) => pos >= r.from && pos < r.to);
+
+  // Pass 2: Inline spoilers
   let idx = text.indexOf("||");
+  const candidates: number[] = [];
   while (idx !== -1) {
-    if (!isCode(idx) && !isCode(idx + 1)) {
-      delimiterIndices.push(idx);
+    if (
+      !isCode(idx) &&
+      !isCode(idx + 1) &&
+      !isInBlock(idx) &&
+      !isEscaped(text, idx)
+    ) {
+      candidates.push(idx);
     }
     idx = text.indexOf("||", idx + 2);
   }
 
   let i = 0;
-  while (i < delimiterIndices.length - 1) {
-    const startIdx = delimiterIndices[i];
-    const endIdx = delimiterIndices[i + 1];
+  while (i < candidates.length - 1) {
+    const startIdx = candidates[i];
 
-    const content = text.slice(startIdx + 2, endIdx);
-    const crossesFencedCode = codeRanges.some(
-      (r) => r.isFenced && startIdx < r.from && endIdx > r.to,
-    );
+    // Opening || must not be followed by whitespace
+    const nextChar = text[startIdx + 2];
+    if (!nextChar || /\s/.test(nextChar)) {
+      i++;
+      continue;
+    }
 
-    if (!crossesFencedCode && content.length > 0) {
-      spoilers.push({
-        from: baseOffset + startIdx,
-        to: baseOffset + endIdx + 2,
-        contentFrom: baseOffset + startIdx + 2,
-        contentTo: baseOffset + endIdx,
-      });
-      i += 2;
-    } else {
-      i += 1;
+    let foundMatch = false;
+    for (let j = i + 1; j < candidates.length; j++) {
+      const endIdx = candidates[j];
+      const prevChar = text[endIdx - 1];
+
+      // Closing || must not be preceded by whitespace
+      if (/\s/.test(prevChar)) {
+        continue;
+      }
+
+      const content = text.slice(startIdx + 2, endIdx);
+
+      // Inline spoilers cannot contain double newlines
+      if (content.includes("\n\n") || content.includes("\r\n\r\n")) {
+        break;
+      }
+
+      const crossesFencedCode = codeRanges.some(
+        (r) => r.isFenced && startIdx < r.from && endIdx > r.to,
+      );
+      if (crossesFencedCode) {
+        continue;
+      }
+
+      if (content.length > 0) {
+        spoilers.push({
+          from: baseOffset + startIdx,
+          to: baseOffset + endIdx + 2,
+          contentFrom: baseOffset + startIdx + 2,
+          contentTo: baseOffset + endIdx,
+          isBlock: false,
+        });
+        i = j + 1;
+        foundMatch = true;
+        break;
+      }
+    }
+
+    if (!foundMatch) {
+      i++;
     }
   }
 
+  spoilers.sort((a, b) => a.from - b.from);
   return spoilers;
 }
