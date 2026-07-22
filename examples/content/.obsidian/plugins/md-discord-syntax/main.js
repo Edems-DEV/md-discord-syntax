@@ -206,7 +206,7 @@ function findSpoilerRanges(text, baseOffset = 0) {
 // ../core/dist/subtext.js
 var SUBTEXT_MARKER = "-# ";
 var SUBTEXT_MARKER_LEN = SUBTEXT_MARKER.length;
-var SUBTEXT_LINE_REGEX = /^(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|\-\s*\[[ xX]\])\s+)?\s*-# /;
+var SUBTEXT_LINE_REGEX = /^(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|-\s*\[[ xX]\])\s+)?\s*-# /;
 function parseSubtextLine(lineText) {
   const match = lineText.match(SUBTEXT_LINE_REGEX);
   if (!match)
@@ -231,7 +231,7 @@ function stripSubtextPrefix(lineText) {
   return lineText;
 }
 function hasSubtextMarker(text) {
-  return /(?:^|\n)(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|\-\s*\[[ xX]\])\s+)?\s*-# /.test(text);
+  return /(?:^|\n)(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|-\s*\[[ xX]\])\s+)?\s*-# /.test(text);
 }
 
 // src/spoiler-post-processor.ts
