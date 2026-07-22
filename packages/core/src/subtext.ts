@@ -2,7 +2,7 @@ export const SUBTEXT_MARKER = "-# ";
 export const SUBTEXT_MARKER_LEN = SUBTEXT_MARKER.length;
 
 export const SUBTEXT_LINE_REGEX =
-  /^(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|\-\s*\[[ xX]\])\s+)?\s*-# /;
+  /^(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|-\s*\[[ xX]\])\s+)?\s*-# /;
 
 export interface SubtextLineParseResult {
   prefix: string;
@@ -41,7 +41,7 @@ export function stripSubtextPrefix(lineText: string): string {
 
 export function hasSubtextMarker(text: string): boolean {
   return (
-    /(?:^|\n)(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|\-\s*\[[ xX]\])\s+)?\s*-# /.test(
+    /(?:^|\n)(?:\s*>\s*)*(?:\s*(?:[-*+]|\d+\.|-\s*\[[ xX]\])\s+)?\s*-# /.test(
       text,
     )
   );

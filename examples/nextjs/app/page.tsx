@@ -6,12 +6,9 @@ import { remarkMdDiscordSyntax } from "@edems-dev/remark-discord-syntax";
 
 async function getRenderedContent() {
   const contentPath = path.resolve(process.cwd(), "..", "content", "test.md");
-  let fileContent = "";
-  if (fs.existsSync(contentPath)) {
-    fileContent = fs.readFileSync(contentPath, "utf-8");
-  } else {
-    fileContent = "# Error\nCould not locate `examples/content/test.md`.";
-  }
+  const fileContent = fs.existsSync(contentPath)
+    ? fs.readFileSync(contentPath, "utf-8")
+    : "# Error\nCould not locate `examples/content/test.md`.";
 
   const processed = await remark()
     .use(remarkMdDiscordSyntax)

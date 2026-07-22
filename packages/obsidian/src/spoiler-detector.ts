@@ -18,7 +18,6 @@ import {
 
 function getEditorLivePreviewField(): StateField<boolean> | null {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const obs = require("obsidian");
     return obs?.editorLivePreviewField ?? null;
   } catch {

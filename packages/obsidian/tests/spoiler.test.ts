@@ -9,7 +9,6 @@ import {
   getSpoilerFragments,
   buildSpoilerDecorations,
   findSpoilerRanges,
-  getSpoilerState,
   isSelectionInSpoiler,
 } from "../src/spoiler-detector.js";
 
