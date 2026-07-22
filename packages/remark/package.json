@@ -32,6 +32,9 @@
     "markdown"
   ],
   "author": "Edems-DEV",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "GPL-3.0",
   "dependencies": {
     "@edems-dev/md-discord-syntax-core": "^1.0.0",
