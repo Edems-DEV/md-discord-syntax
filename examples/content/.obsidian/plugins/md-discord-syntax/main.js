@@ -1419,6 +1419,151 @@ var DiscordSyntaxSettingTab = class extends import_obsidian.PluginSettingTab {
     this.copyTimeoutId = null;
     this.plugin = plugin;
   }
+  getSettingDefinitions() {
+    return [
+      {
+        name: "Enable Spoilers syntax",
+        desc: "Enable ||spoiler|| syntax in Reading View and Live Preview.",
+        control: { type: "toggle", key: "enableSpoilers" }
+      },
+      {
+        name: "Enable Subtext syntax",
+        desc: "Enable -# subtext syntax in Reading View and Live Preview.",
+        control: { type: "toggle", key: "enableSubtext" }
+      },
+      {
+        type: "group",
+        heading: "Spoiler appearance",
+        items: [
+          {
+            name: "Hidden background color",
+            desc: "Background color of unrevealed spoilers. CSS variable: --discord-spoiler-hidden-bg",
+            aliases: ["--discord-spoiler-hidden-bg"],
+            control: {
+              type: "color",
+              key: "spoilerHiddenColor",
+              disabled: () => !this.plugin.settings.enableSpoilers
+            }
+          },
+          {
+            name: "Revealed background color",
+            desc: "Background color of revealed or hovered spoilers. CSS variable: --discord-spoiler-revealed-bg",
+            aliases: ["--discord-spoiler-revealed-bg"],
+            control: {
+              type: "color",
+              key: "spoilerRevealedColor",
+              disabled: () => !this.plugin.settings.enableSpoilers
+            }
+          },
+          {
+            name: "Revealed text color",
+            desc: "Text color of revealed spoilers. CSS variable: --discord-spoiler-text-color",
+            aliases: ["--discord-spoiler-text-color"],
+            control: {
+              type: "color",
+              key: "spoilerTextColor",
+              disabled: () => !this.plugin.settings.enableSpoilers
+            }
+          },
+          {
+            name: "Corner radius (px)",
+            desc: "Border radius for spoiler caps. CSS variable: --discord-spoiler-radius",
+            aliases: ["--discord-spoiler-radius"],
+            control: {
+              type: "slider",
+              key: "spoilerRadius",
+              disabled: () => !this.plugin.settings.enableSpoilers,
+              min: 0,
+              max: 16,
+              step: 1
+            }
+          },
+          {
+            name: "Cap padding (px)",
+            desc: "Horizontal padding for outer spoiler edges. CSS variable: --discord-spoiler-padding",
+            aliases: ["--discord-spoiler-padding"],
+            control: {
+              type: "slider",
+              key: "spoilerPadding",
+              disabled: () => !this.plugin.settings.enableSpoilers,
+              min: 0,
+              max: 12,
+              step: 1
+            }
+          }
+        ]
+      },
+      {
+        type: "group",
+        heading: "Subtext appearance",
+        items: [
+          {
+            name: "Subtext color",
+            desc: "Text color for subtext items. CSS variable: --discord-subtext-color",
+            aliases: ["--discord-subtext-color"],
+            control: {
+              type: "color",
+              key: "subtextColor",
+              disabled: () => !this.plugin.settings.enableSubtext
+            }
+          },
+          {
+            name: "Subtext font size (px)",
+            desc: "Font size for subtext items. CSS variable: --discord-subtext-font-size",
+            aliases: ["--discord-subtext-font-size"],
+            control: {
+              type: "slider",
+              key: "subtextFontSize",
+              disabled: () => !this.plugin.settings.enableSubtext,
+              min: 8,
+              max: 24,
+              step: 1
+            }
+          },
+          {
+            name: "Subtext opacity",
+            desc: "Opacity for subtext items. CSS variable: --discord-subtext-opacity",
+            aliases: ["--discord-subtext-opacity"],
+            control: {
+              type: "slider",
+              key: "subtextOpacity",
+              disabled: () => !this.plugin.settings.enableSubtext,
+              min: 0.1,
+              max: 1,
+              step: 0.05
+            }
+          }
+        ]
+      },
+      {
+        name: "Reset appearance settings",
+        desc: "Reset colors, size, opacity, radius, and padding to default values. Syntax toggles are preserved.",
+        action: () => {
+          this.plugin.settings = resetAppearanceSettings(this.plugin.settings);
+          this.plugin.applyStyles(this.containerEl.ownerDocument?.body);
+          this.update();
+          void this.plugin.saveSettings();
+        }
+      }
+    ];
+  }
+  getControlValue(key) {
+    if (key === "spoilerHiddenColor" || key === "spoilerRevealedColor" || key === "spoilerTextColor" || key === "subtextColor") {
+      return resolveColorToHex(
+        this.plugin.settings[key],
+        this.containerEl.ownerDocument?.body
+      );
+    }
+    return super.getControlValue(key);
+  }
+  async setControlValue(key, value) {
+    await super.setControlValue(key, value);
+    if (key === "enableSpoilers" || key === "enableSubtext") {
+      this.plugin.rebuildEditorExtensions();
+      this.update();
+    }
+    this.plugin.applyStyles(this.containerEl.ownerDocument?.body);
+  }
   hide() {
     if (this.copyTimeoutId !== null) {
       window.clearTimeout(this.copyTimeoutId);
@@ -1433,7 +1578,7 @@ var DiscordSyntaxSettingTab = class extends import_obsidian.PluginSettingTab {
       window.clearTimeout(this.copyTimeoutId);
       this.copyTimeoutId = null;
     }
-    new import_obsidian.Setting(containerEl).setName("Discord Syntax Settings").setHeading();
+    new import_obsidian.Setting(containerEl).setName("Syntax").setHeading();
     const updateStyles = () => {
       const settingsBody = containerEl.ownerDocument?.body;
       this.plugin.applyStyles(settingsBody);
