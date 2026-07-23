@@ -55,7 +55,7 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
       this.copyTimeoutId = null;
     }
 
-    new Setting(containerEl).setName("Discord Syntax Settings").setHeading();
+    new Setting(containerEl).setName("Syntax").setHeading();
 
     // Helper for applying current styles to DOM synchronously
     const updateStyles = () => {

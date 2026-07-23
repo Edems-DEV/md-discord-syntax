@@ -7,3 +7,4 @@ styles.css
 *.tsbuildinfo
 .DS_Store
 .next/
+.temp/

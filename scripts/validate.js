@@ -301,9 +301,25 @@ for (const file of obsidianSrcFiles) {
       `Deprecated querySelector/querySelectorAll found in packages/obsidian/src/${file}. Use find/findAll instead.`,
     );
   }
+
+  // 7e. Setting headings must describe the section without repeating the
+  // plugin name or the surrounding settings context.
+  const settingHeadingPattern =
+    /\.setName\(\s*(["'`])([^"'`]+)\1\s*\)\s*\.setHeading\(\)/g;
+  for (const match of content.matchAll(settingHeadingPattern)) {
+    const heading = match[2];
+    if (
+      /\bsettings?\b/i.test(heading) ||
+      heading.toLowerCase().includes(manifest.name.toLowerCase())
+    ) {
+      exitWithError(
+        `Invalid settings heading "${heading}" found in packages/obsidian/src/${file}. Omit "settings" and the plugin name.`,
+      );
+    }
+  }
 }
 
-// 7e. Check main.js bundle for scanner violations
+// 7f. Check main.js bundle for scanner violations
 const mainJsPath = path.join(rootDir, "packages", "obsidian", "main.js");
 if (fs.existsSync(mainJsPath)) {
   const mainJsContent = fs.readFileSync(mainJsPath, "utf8");
@@ -323,7 +339,7 @@ if (fs.existsSync(mainJsPath)) {
   }
 }
 
-// 7f. Check styles.css compatibility
+// 7g. Check styles.css compatibility
 const stylesCssPath = path.join(
   rootDir,
   "packages",
