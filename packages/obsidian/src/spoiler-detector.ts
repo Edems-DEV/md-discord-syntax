@@ -12,16 +12,17 @@ import {
   StateEffect,
 } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { editorLivePreviewField } from "obsidian";
+import obsidian from "obsidian";
 import {
   findSpoilerRanges,
   SpoilerRange,
 } from "@edems-dev/md-discord-syntax-core";
 
 function getEditorLivePreviewField(): StateField<boolean> | null {
-  return typeof editorLivePreviewField !== "undefined"
-    ? editorLivePreviewField
-    : null;
+  return (
+    (obsidian as { editorLivePreviewField?: StateField<boolean> })
+      .editorLivePreviewField ?? null
+  );
 }
 
 export { findSpoilerRanges, SpoilerRange };
