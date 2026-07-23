@@ -41,3 +41,14 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish @edems-dev/md-discord-syntax-quartz
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            npm publish --access public --provenance --workspace=packages/quartz
+          else
+            echo "NPM_TOKEN not set; skipping publish (dry-run)."
+            npm publish --dry-run --workspace=packages/quartz
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

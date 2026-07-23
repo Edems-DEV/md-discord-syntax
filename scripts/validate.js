@@ -200,8 +200,8 @@ if (obsidianCoreDep && obsidianCoreDep.startsWith("file:")) {
   );
 }
 
-// Ensure published npm packages (core & remark) configure tarballs & safe prepack
-for (const pkgName of ["core", "remark"]) {
+// Ensure published npm packages (core, remark, quartz) configure tarballs & safe prepack
+for (const pkgName of ["core", "remark", "quartz"]) {
   const pkgJsonPath = path.join(rootDir, "packages", pkgName, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
 
