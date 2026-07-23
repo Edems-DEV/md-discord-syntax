@@ -12,7 +12,7 @@ It injects default CSS via `externalResources()` when `enableDefaultStyles` is `
 | 1 | Package Setup & CSS | `packages/quartz/styles.css`, `packages/quartz/scripts/copy-styles.js`, `packages/quartz/package.json` | None | DONE |
 | 2 | Transformer Adapter Implementation | `packages/quartz/src/index.ts` | M1 | DONE |
 | 3 | Unit Testing & Verification | `packages/quartz/tests/index.test.ts` | M2 | DONE |
-| 4 | Example Site Integration | `examples/quartz` configuration (`quartz.config.yaml` / `quartz.ts`) | M3 | DONE |
+| 4 | Example Site Integration | Reproducible Quartz test-instance guide in `examples/README.md` | M3 | DONE |
 | 5 | Monorepo Verification & Audit | Root build, typecheck, test, and audit validation | M4 | DONE |
 
 ## Interface Contracts
@@ -39,4 +39,4 @@ It injects default CSS via `externalResources()` when `enableDefaultStyles` is `
 - `packages/quartz/scripts/copy-styles.js`
 - `packages/quartz/src/index.ts`
 - `packages/quartz/tests/index.test.ts`
-- `examples/quartz/quartz.config.yaml` / `examples/quartz/quartz.ts`
+- `examples/README.md`

@@ -118,10 +118,7 @@ export default {
 };
 ```
 
-Run dev server / start locally:
-```bash
-npm run start:quartz
-```
+For a disposable local Quartz test site, follow the [example setup guide](examples/README.md#4-quartz-test-instance).
 
 ---
 

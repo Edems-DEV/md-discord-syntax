@@ -4,8 +4,7 @@
   "private": true,
   "description": "Monorepo for Discord syntax extensions (core, remark, obsidian)",
   "workspaces": [
-    "packages/*",
-    "examples/*"
+    "packages/*"
   ],
   "scripts": {
     "prebuild": "npm run build -w @edems-dev/md-discord-syntax-core && npm run build -w @edems-dev/remark-discord-syntax",
@@ -13,8 +12,6 @@
     "build:obsidian": "npm run build -w md-discord-syntax && node scripts/sync-examples.js",
     "postbuild": "node scripts/sync-examples.js",
     "sync:examples": "node scripts/sync-examples.js",
-    "start:quartz": "npm run build && npm run start -w @jackyzha0/quartz",
-    "dev:quartz": "npm run build && npm run dev -w @jackyzha0/quartz",
     "postinstall": "node scripts/patch-obsidian.js",
     "pretest": "node scripts/patch-obsidian.js && npm run build -w @edems-dev/md-discord-syntax-core && npm run build -w @edems-dev/remark-discord-syntax",
     "test": "npm run test -w @edems-dev/md-discord-syntax-core && npm run test -w md-discord-syntax && npm run test -w @edems-dev/md-discord-syntax-quartz && npm run test -w @edems-dev/remark-discord-syntax && node --test scripts/tests/*.test.js",

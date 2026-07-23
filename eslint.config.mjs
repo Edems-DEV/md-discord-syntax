@@ -8,7 +8,6 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",
-      "examples/quartz/**",
       "packages/obsidian/main.js",
       "packages/obsidian/styles.css",
       "**/*.mjs",
@@ -18,7 +17,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ["packages/**/*.ts", "examples/**/*.ts", "examples/**/*.tsx"],
+    files: ["packages/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
