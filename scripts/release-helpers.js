@@ -15,8 +15,31 @@ const RELEASE_FILES = [
   "examples/content/.obsidian/plugins/md-discord-syntax/styles.css",
 ];
 
+function resolveInvocation(
+  command,
+  args,
+  runtime = {
+    execPath: process.execPath,
+    npmExecPath: process.env.npm_execpath,
+  },
+) {
+  if (command !== "npm") {
+    return { command, args };
+  }
+  if (!runtime.npmExecPath) {
+    throw new Error(
+      "npm_execpath is unavailable; run this command through npm",
+    );
+  }
+  return {
+    command: runtime.execPath,
+    args: [runtime.npmExecPath, ...args],
+  };
+}
+
 function run(command, args, options = {}) {
-  return execFileSync(command, args, {
+  const invocation = resolveInvocation(command, args);
+  return execFileSync(invocation.command, invocation.args, {
     cwd: rootDir,
     stdio: "inherit",
     ...options,
@@ -24,7 +47,8 @@ function run(command, args, options = {}) {
 }
 
 function capture(command, args) {
-  return execFileSync(command, args, {
+  const invocation = resolveInvocation(command, args);
+  return execFileSync(invocation.command, invocation.args, {
     cwd: rootDir,
     encoding: "utf8",
   }).trim();
@@ -153,6 +177,7 @@ module.exports = {
   commitVersion,
   createAndPushTag,
   pushCurrentBranch,
+  resolveInvocation,
   restoreReleaseFiles,
   syncPackageLock,
   tagExists,
