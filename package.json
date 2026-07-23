@@ -15,7 +15,7 @@
     "start:quartz": "npm run build && npm run start -w @jackyzha0/quartz",
     "dev:quartz": "npm run build && npm run dev -w @jackyzha0/quartz",
     "pretest": "npm run build -w @edems-dev/md-discord-syntax-core && npm run build -w @edems-dev/remark-discord-syntax",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test -w @edems-dev/md-discord-syntax-core && npm run test -w md-discord-syntax && npm run test -w @edems-dev/md-discord-syntax-quartz && npm run test -w @edems-dev/remark-discord-syntax",
     "lint": "eslint .",
     "pretypecheck": "npm run build -w @edems-dev/md-discord-syntax-core && npm run build -w @edems-dev/remark-discord-syntax",
     "typecheck": "npm run typecheck --workspaces --if-present",
