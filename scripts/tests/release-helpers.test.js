@@ -6,6 +6,7 @@ const {
   bumpVersion,
   resolveInvocation,
 } = require("../release-helpers.js");
+const packageLock = require("../../package-lock.json");
 
 test("bumpVersion increments valid semantic versions", () => {
   assert.equal(bumpVersion("1.2.3", "patch"), "1.2.4");
@@ -30,6 +31,12 @@ test("release commits include lock metadata but exclude generated examples", () 
   );
 });
 
+test("package lock includes the Rollup Linux binary used by CI", () => {
+  assert.ok(
+    packageLock.packages["node_modules/@rollup/rollup-linux-x64-gnu"],
+  );
+});
+
 test("resolveInvocation runs npm through its JavaScript CLI", () => {
   assert.deepEqual(
     resolveInvocation("npm", ["run", "test"], {
@@ -45,6 +52,24 @@ test("resolveInvocation runs npm through its JavaScript CLI", () => {
     command: "git",
     args: ["status"],
   });
+});
+
+test("resolveInvocation switches from Bun to npm's JavaScript CLI", () => {
+  assert.deepEqual(
+    resolveInvocation("npm", ["run", "release:check"], {
+      execPath: "node.exe",
+      npmExecPath: "C:\\Users\\root\\.bun\\bin\\bun.exe",
+      npmCliPath: "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+    }),
+    {
+      command: "node.exe",
+      args: [
+        "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+        "run",
+        "release:check",
+      ],
+    },
+  );
 });
 
 test("resolveInvocation rejects npm without an npm CLI path", () => {

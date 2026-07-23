@@ -18,6 +18,13 @@ function resolveInvocation(
   runtime = {
     execPath: process.execPath,
     npmExecPath: process.env.npm_execpath,
+    npmCliPath: path.join(
+      path.dirname(process.execPath),
+      "node_modules",
+      "npm",
+      "bin",
+      "npm-cli.js",
+    ),
   },
 ) {
   if (command !== "npm") {
@@ -28,9 +35,17 @@ function resolveInvocation(
       "npm_execpath is unavailable; run this command through npm",
     );
   }
+  const npmCliPath = /\.[cm]?js$/i.test(runtime.npmExecPath)
+    ? runtime.npmExecPath
+    : runtime.npmCliPath;
+  if (!npmCliPath) {
+    throw new Error(
+      `npm_execpath points to an executable (${runtime.npmExecPath}), but the npm CLI path is unavailable`,
+    );
+  }
   return {
     command: runtime.execPath,
-    args: [runtime.npmExecPath, ...args],
+    args: [npmCliPath, ...args],
   };
 }
 
