@@ -394,4 +394,8 @@ export function remarkMdDiscordSyntax() {
   };
 }
 
+export { remarkMdDiscordSyntax as remarkDiscordSyntax };
+
 export default remarkMdDiscordSyntax;
+
+

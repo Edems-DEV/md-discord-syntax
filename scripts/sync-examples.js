@@ -69,3 +69,22 @@ if (fs.existsSync(nextjsNodeModules)) {
     "Synced packages/core and packages/remark build outputs to examples/nextjs/node_modules/@edems-dev",
   );
 }
+
+const quartzNodeModules = path.join(
+  rootDir,
+  "examples",
+  "quartz",
+  "node_modules",
+  "@edems-dev",
+);
+if (fs.existsSync(quartzNodeModules)) {
+  const quartzDist = path.join(rootDir, "packages", "quartz", "dist");
+  copyDirRecursive(
+    quartzDist,
+    path.join(quartzNodeModules, "md-discord-syntax-quartz", "dist"),
+  );
+  console.log(
+    "Synced packages/quartz build outputs to examples/quartz/node_modules/@edems-dev",
+  );
+}
+

@@ -1,8 +1,63 @@
 {
   "name": "@edems-dev/md-discord-syntax-quartz",
   "version": "1.0.0",
-  "private": true,
-  "description": "Reserved package for future Quartz static site generator integration",
+  "description": "Quartz static site generator transformer plugin adapter for Discord markdown syntax",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "styles.css"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean && node scripts/copy-styles.js",
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "keywords": [
+    "quartz",
+    "quartz-plugin",
+    "discord",
+    "spoiler",
+    "subtext",
+    "markdown",
+    "transformer"
+  ],
   "author": "Edems-DEV",
-  "license": "GPL-3.0"
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@edems-dev/remark-discord-syntax": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsup": "^8.3.6",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  },
+  "quartz": {
+    "name": "md-discord-syntax-quartz",
+    "displayName": "Discord Syntax",
+    "category": "transformer",
+    "version": "1.0.0",
+    "quartzVersion": ">=4.0.0",
+    "defaultOrder": 45,
+    "defaultEnabled": true,
+    "defaultOptions": {
+      "enableDefaultStyles": true
+    }
+  }
 }
+

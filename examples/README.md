@@ -20,6 +20,7 @@ examples/
 ## 1. Shared Test Note (`examples/content/test.md`)
 
 `examples/content/test.md` contains comprehensive edge cases for both:
+
 - **Spoiler Syntax (`||spoiler||`)**: Inline, nested bold/italic/code, adjacent spoilers, code blocks containing `||`, blockquotes, list items, and unmatched delimiters.
 - **Subtext Syntax (`-# subtext`)**: Physical line starts, nested formatting, consecutive subtext lines, and distinguishing `-# ` from headers.
 
@@ -28,6 +29,7 @@ examples/
 ## 2. Obsidian Vault Example (`examples/content`)
 
 ### Setup & Usage:
+
 1. Build the Obsidian plugin from the root repository:
    ```bash
    npm run build
@@ -42,6 +44,7 @@ examples/
 ## 3. Next.js App Example (`examples/nextjs`)
 
 ### Setup & Usage:
+
 1. Install dependencies & build core monorepo packages:
    ```bash
    npm run build

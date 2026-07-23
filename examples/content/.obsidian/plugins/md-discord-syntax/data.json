@@ -1,12 +1,12 @@
 {
   "enableSpoilers": true,
   "enableSubtext": true,
-  "spoilerHiddenColor": "#36393f",
-  "spoilerRevealedColor": "#4f545c",
-  "spoilerTextColor": "#dcddde",
+  "spoilerHiddenColor": "var(--background-modifier-hover, #36393f)",
+  "spoilerRevealedColor": "var(--background-modifier-active-hover, #4f545c)",
+  "spoilerTextColor": "var(--text-normal, #dcddde)",
   "spoilerRadius": 4,
   "spoilerPadding": 4,
-  "subtextColor": "#72767d",
+  "subtextColor": "var(--text-muted, #72767d)",
   "subtextFontSize": 12,
   "subtextOpacity": 0.75
 }
