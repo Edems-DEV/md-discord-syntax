@@ -11,6 +11,7 @@ export default tseslint.config(
       "packages/obsidian/main.js",
       "packages/obsidian/styles.css",
       "**/*.mjs",
+      "**/*.cjs",
       "**/*.js",
     ],
   },

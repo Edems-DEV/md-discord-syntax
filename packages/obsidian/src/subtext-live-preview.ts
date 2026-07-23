@@ -33,7 +33,7 @@ export const subtextEditorPlugin = ViewPlugin.fromClass(
       }
     }
   },
-  { decorations: (v) => v.decorations },
+  { decorations: (v: { decorations: DecorationSet }) => v.decorations },
 );
 
 function collectActiveLineNumbers(view: EditorView): Set<number> {

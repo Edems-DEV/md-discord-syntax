@@ -9,7 +9,10 @@ import {
   getSpoilerFragments,
   buildSpoilerDecorations,
   findSpoilerRanges,
+  getSpoilerAtSelection,
   isSelectionInSpoiler,
+  setSpoilerStateEffect,
+  spoilerStateField,
 } from "../src/spoiler-detector.js";
 
 if (typeof Element !== "undefined") {
@@ -215,6 +218,81 @@ void test("Spoiler Detection & Live Preview", async (t) => {
         iterOutside.next();
       }
       assert.strictEqual(itemsOutside.length, 3); // 3 decorations = rendered spoiler mode
+    },
+  );
+
+  await t.test(
+    "preserves spoiler state identity for unrelated transactions",
+    () => {
+      const state = EditorState.create({
+        doc: "||spoiler||",
+        extensions: [spoilerStateField],
+      });
+      const before = state.field(spoilerStateField);
+      const next = state.update({ scrollIntoView: true }).state;
+
+      assert.strictEqual(next.field(spoilerStateField), before);
+    },
+  );
+
+  await t.test("prunes state entries when their delimiters are removed", () => {
+    const docText = "||spoiler||";
+    let state = EditorState.create({
+      doc: docText,
+      extensions: [spoilerStateField],
+    });
+    state = state.update({
+      effects: setSpoilerStateEffect.of({
+        from: 0,
+        to: docText.length,
+        state: "revealed",
+      }),
+    }).state;
+    assert.strictEqual(state.field(spoilerStateField).length, 1);
+
+    state = state.update({
+      changes: { from: 0, to: docText.length, insert: "plain text" },
+    }).state;
+    assert.deepStrictEqual(state.field(spoilerStateField), []);
+  });
+
+  await t.test(
+    "finds a block spoiler from a selection on an inner line",
+    () => {
+      const docText = "||\nfirst line\n\nsecond line\n||";
+      const state = EditorState.create({
+        doc: docText,
+        selection: { anchor: docText.indexOf("second") },
+      });
+      const spoiler = getSpoilerAtSelection(state);
+
+      assert.ok(spoiler);
+      assert.strictEqual(spoiler.isBlock, true);
+      assert.strictEqual(spoiler.from, 0);
+      assert.strictEqual(spoiler.to, docText.length);
+    },
+  );
+
+  await t.test(
+    "decorates block spoilers whose delimiters are outside the visible range",
+    () => {
+      const docText = "||\nfirst line\n\nsecond line\n||";
+      const contentFrom = docText.indexOf("second");
+      const mockState = EditorState.create({
+        doc: docText,
+        selection: { anchor: docText.length },
+      });
+      const mockView = {
+        state: mockState,
+        visibleRanges: [
+          { from: contentFrom, to: contentFrom + "second".length },
+        ],
+      } as unknown as EditorView;
+
+      const decorations = buildSpoilerDecorations(mockView);
+      const iter = decorations.iter();
+      assert.notStrictEqual(iter.value, null);
+      assert.strictEqual(iter.from, 0);
     },
   );
 

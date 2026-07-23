@@ -8,11 +8,7 @@ const SUBTEXT_CLASS = "discord-subtext";
 
 export function processSubtextParagraph(el: HTMLElement): void {
   const blockSelector = "p, ul, ol, div, blockquote";
-  const finder = el as HTMLElement & {
-    find?: (s: string) => HTMLElement | null;
-  };
-  const hasChildBlock =
-    typeof finder.find === "function" && finder.find(blockSelector) !== null;
+  const hasChildBlock = el.find(blockSelector) !== null;
   if (hasChildBlock) {
     return;
   }
@@ -70,14 +66,10 @@ function createSpanElement(parent: HTMLElement, cls: string): HTMLElement {
   if (typeof parent.createEl === "function") {
     return parent.createEl("span", { cls });
   }
-  const ownerDoc = parent.ownerDocument;
-  if (ownerDoc && typeof ownerDoc.createElement === "function") {
-    const span = ownerDoc.createElement("span");
-    span.className = cls;
-    parent.appendChild(span);
-    return span;
-  }
-  return parent;
+  const span = parent.ownerDocument.createElement("span");
+  span.className = cls;
+  parent.appendChild(span);
+  return span;
 }
 
 function emptyContainer(el: HTMLElement): void {

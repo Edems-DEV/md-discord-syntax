@@ -15,6 +15,32 @@ export interface UnistNode {
   data?: Record<string, unknown>;
 }
 
+const SPOILER_ATTRIBUTES: NonNullable<UnistNode["attributes"]> = [
+  { type: "mdxJsxAttribute", name: "role", value: "button" },
+  { type: "mdxJsxAttribute", name: "tabIndex", value: "0" },
+  { type: "mdxJsxAttribute", name: "aria-expanded", value: "false" },
+  {
+    type: "mdxJsxAttribute",
+    name: "aria-label",
+    value: "Spoiler, activate to reveal",
+  },
+];
+
+function createSpoilerProperties(): Record<string, unknown> {
+  return {
+    className: ["discord-syntax-spoiler", "discord-spoiler"],
+    "data-spoiler": "true",
+    role: "button",
+    tabIndex: 0,
+    "aria-expanded": "false",
+    "aria-label": "Spoiler, activate to reveal",
+    onclick:
+      "this.classList.toggle('revealed');this.setAttribute('aria-expanded',this.classList.contains('revealed')?'true':'false')",
+    onkeydown:
+      "if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}",
+  };
+}
+
 function normalizeChildren(nodes?: UnistNode[]): UnistNode[] {
   if (!nodes || !Array.isArray(nodes)) return [];
   const result: UnistNode[] = [];
@@ -42,7 +68,7 @@ function getTextContent(node: UnistNode): string {
 }
 
 export function remarkMdDiscordSyntax() {
-  return (tree: UnistNode) => {
+  return (tree: UnistNode): void => {
     // 0. Multi-paragraph Block Spoilers at root level
     if (tree.type === "root" && Array.isArray(tree.children)) {
       const children = tree.children;
@@ -110,19 +136,20 @@ export function remarkMdDiscordSyntax() {
               const spoilerBlock: UnistNode = {
                 type: "mdxJsxFlowElement",
                 name: "Spoiler",
-                attributes: [],
+                attributes: SPOILER_ATTRIBUTES.map((attribute) => ({
+                  ...attribute,
+                })),
                 children: insideBlocks,
                 data: {
                   _isGenerated: true,
                   hName: "div",
                   hProperties: {
+                    ...createSpoilerProperties(),
                     className: [
                       "discord-syntax-spoiler",
                       "discord-spoiler",
                       "discord-spoiler-block",
                     ],
-                    "data-spoiler": "true",
-                    onclick: "this.classList.toggle('revealed')",
                   },
                 },
               };
@@ -138,7 +165,7 @@ export function remarkMdDiscordSyntax() {
     }
 
     // 1. Spoilers (Inline)
-    visit(tree, (node: UnistNode) => {
+    visit(tree as never, (node: UnistNode) => {
       if (
         !node.children ||
         !Array.isArray(node.children) ||
@@ -252,16 +279,14 @@ export function remarkMdDiscordSyntax() {
         result.push({
           type: "mdxJsxTextElement",
           name: "Spoiler",
-          attributes: [],
+          attributes: SPOILER_ATTRIBUTES.map((attribute) => ({
+            ...attribute,
+          })),
           children: normalizedInside,
           data: {
             _isGenerated: true,
             hName: "span",
-            hProperties: {
-              className: ["discord-syntax-spoiler", "discord-spoiler"],
-              "data-spoiler": "true",
-              onclick: "this.classList.toggle('revealed')",
-            },
+            hProperties: createSpoilerProperties(),
           },
         });
 
@@ -280,7 +305,7 @@ export function remarkMdDiscordSyntax() {
     });
 
     // 2. Subtext
-    visit(tree, "paragraph", (node: UnistNode) => {
+    visit(tree as never, "paragraph", (node: UnistNode) => {
       if (!node.children) return;
 
       let mightHaveSubtext = false;
@@ -397,5 +422,3 @@ export function remarkMdDiscordSyntax() {
 export { remarkMdDiscordSyntax as remarkDiscordSyntax };
 
 export default remarkMdDiscordSyntax;
-
-

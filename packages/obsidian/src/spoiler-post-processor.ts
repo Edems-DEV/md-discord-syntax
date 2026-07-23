@@ -15,7 +15,7 @@ export function processSpoilers(
   }
 
   function createSpoilerSpan(): HTMLSpanElement {
-    const spoilerSpan = element.createEl("span", {
+    const spoilerSpan = element.createSpan({
       cls: "note-flow-spoiler discord-syntax-spoiler",
       attr: {
         role: "button",
@@ -28,7 +28,7 @@ export function processSpoilers(
       spoilerSpan.parentNode.removeChild(spoilerSpan);
     }
 
-    const innerSpan = spoilerSpan.createEl("span", {
+    const innerSpan = spoilerSpan.createSpan({
       attr: {
         "aria-hidden": "true",
       },
@@ -76,7 +76,7 @@ export function processSpoilers(
     if (beforeStr) {
       parent.insertBefore(doc.createTextNode(beforeStr), node);
     }
-    const marker = element.createEl("span", {
+    const marker = element.createSpan({
       attr: { "data-spoiler-marker": "true" },
     });
     if (marker.parentNode) {

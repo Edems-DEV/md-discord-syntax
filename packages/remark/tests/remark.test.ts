@@ -31,6 +31,21 @@ void test("Remark Discord Syntax Plugin", async (t) => {
       (spoiler.data?.hProperties as Record<string, string>)?.["data-spoiler"],
       "true",
     );
+    const properties = spoiler.data?.hProperties as Record<string, unknown>;
+    assert.strictEqual(properties.role, "button");
+    assert.strictEqual(properties.tabIndex, 0);
+    assert.strictEqual(properties["aria-expanded"], "false");
+    assert.strictEqual(typeof properties.onclick, "string");
+    assert.strictEqual(typeof properties.onkeydown, "string");
+    assert.deepStrictEqual(
+      spoiler.attributes?.map(({ name, value }) => [name, value]),
+      [
+        ["role", "button"],
+        ["tabIndex", "0"],
+        ["aria-expanded", "false"],
+        ["aria-label", "Spoiler, activate to reveal"],
+      ],
+    );
   });
 
   await t.test("ignores delimiter text inside code", async () => {

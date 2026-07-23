@@ -1,4 +1,4 @@
-import { Plugin, MarkdownView, Notice } from "obsidian";
+import { Plugin, MarkdownView, Notice, type WorkspaceLeaf } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import { processSpoilers } from "./spoiler-post-processor";
@@ -15,6 +15,7 @@ import {
 } from "./settings";
 import { DiscordSyntaxSettingTab } from "./settings-tab";
 import { applyStyleVariables, removeStyleVariables } from "./style-manager";
+
 
 export default class DiscordSyntaxPlugin extends Plugin {
   settings!: DiscordSyntaxSettings;
@@ -45,14 +46,9 @@ export default class DiscordSyntaxPlugin extends Plugin {
         ) {
           targets.add(element);
         }
-        const finder = element as HTMLElement & {
-          findAll?: (s: string) => HTMLElement[];
-        };
-        if (typeof finder.findAll === "function") {
-          const children = finder.findAll(selector);
-          for (let i = 0; i < children.length; i++) {
-            targets.add(children[i]);
-          }
+        const children = element.findAll(selector);
+        for (let i = 0; i < children.length; i++) {
+          targets.add(children[i]);
         }
         for (const target of targets) {
           processSubtextParagraph(target);
@@ -178,7 +174,7 @@ export default class DiscordSyntaxPlugin extends Plugin {
       .then(async () => {
         await this.saveData(this.settings);
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error("Discord Syntax: Failed to save settings", err);
       });
     this.saveQueue = queue;
@@ -194,11 +190,11 @@ export default class DiscordSyntaxPlugin extends Plugin {
     if (typeof activeDocument !== "undefined" && activeDocument.body) {
       bodies.add(activeDocument.body);
     }
-    if (this.app?.workspace?.containerEl?.ownerDocument?.body) {
+    if (this.app.workspace.containerEl?.ownerDocument?.body) {
       bodies.add(this.app.workspace.containerEl.ownerDocument.body);
     }
-    if (typeof this.app?.workspace?.iterateAllLeaves === "function") {
-      this.app.workspace.iterateAllLeaves((leaf) => {
+    if (typeof this.app.workspace.iterateAllLeaves === "function") {
+      this.app.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
         const body = leaf.view?.containerEl?.ownerDocument?.body;
         if (body) {
           bodies.add(body);

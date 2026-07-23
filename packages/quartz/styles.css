@@ -1,8 +1,10 @@
 /* Discord Spoilers */
-.discord-syntax-spoiler, .discord-spoiler, [data-spoiler="true"] {
+html body .discord-syntax-spoiler,
+html body .discord-spoiler,
+html body [data-spoiler="true"] {
   background-color: var(--discord-spoiler-hidden-bg, #2b2d31);
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
   cursor: pointer;
   user-select: none;
   border-radius: 3px;
@@ -11,60 +13,62 @@
   display: inline;
 }
 
-.discord-syntax-spoiler:not(.revealed):not(.is-revealed):not(:hover) *,
-.discord-spoiler:not(.revealed):not(.is-revealed):not(:hover) *,
-[data-spoiler="true"]:not(.revealed):not(.is-revealed):not(:hover) * {
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
+html body .discord-syntax-spoiler:not(.revealed):not(.is-revealed):not(:hover) *,
+html body .discord-spoiler:not(.revealed):not(.is-revealed):not(:hover) *,
+html body [data-spoiler="true"]:not(.revealed):not(.is-revealed):not(:hover) * {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  text-shadow: none;
 }
 
-.discord-syntax-spoiler:hover,
-.discord-syntax-spoiler.revealed,
-.discord-syntax-spoiler.is-revealed,
-.discord-syntax-spoiler[data-revealed="true"],
-.discord-spoiler:hover,
-.discord-spoiler.revealed,
-.discord-spoiler.is-revealed,
-.discord-spoiler[data-revealed="true"],
-[data-spoiler="true"]:hover,
-[data-spoiler="true"].revealed,
-[data-spoiler="true"].is-revealed {
-  color: var(--dark, inherit) !important;
-  -webkit-text-fill-color: initial !important;
-  background-color: var(--discord-spoiler-revealed-bg, rgba(255, 255, 255, 0.12)) !important;
+html body .discord-syntax-spoiler:hover,
+html body .discord-syntax-spoiler.revealed,
+html body .discord-syntax-spoiler.is-revealed,
+html body .discord-syntax-spoiler[data-revealed="true"],
+html body .discord-spoiler:hover,
+html body .discord-spoiler.revealed,
+html body .discord-spoiler.is-revealed,
+html body .discord-spoiler[data-revealed="true"],
+html body [data-spoiler="true"]:hover,
+html body [data-spoiler="true"].revealed,
+html body [data-spoiler="true"].is-revealed {
+  color: var(--dark, inherit);
+  -webkit-text-fill-color: initial;
+  background-color: var(--discord-spoiler-revealed-bg, rgba(255, 255, 255, 0.12));
 }
 
-:root[saved-theme="light"] .discord-syntax-spoiler.revealed,
-:root[saved-theme="light"] .discord-syntax-spoiler.is-revealed,
-:root[saved-theme="light"] .discord-syntax-spoiler:hover,
-:root[saved-theme="light"] .discord-spoiler.revealed,
-:root[saved-theme="light"] .discord-spoiler.is-revealed,
-:root[saved-theme="light"] .discord-spoiler:hover,
-:root[saved-theme="light"] [data-spoiler="true"].revealed,
-:root[saved-theme="light"] [data-spoiler="true"].is-revealed,
-:root[saved-theme="light"] [data-spoiler="true"]:hover {
-  background-color: var(--discord-spoiler-revealed-bg, rgba(0, 0, 0, 0.08)) !important;
+html:root[saved-theme="light"] body .discord-syntax-spoiler.revealed,
+html:root[saved-theme="light"] body .discord-syntax-spoiler.is-revealed,
+html:root[saved-theme="light"] body .discord-syntax-spoiler:hover,
+html:root[saved-theme="light"] body .discord-spoiler.revealed,
+html:root[saved-theme="light"] body .discord-spoiler.is-revealed,
+html:root[saved-theme="light"] body .discord-spoiler:hover,
+html:root[saved-theme="light"] body [data-spoiler="true"].revealed,
+html:root[saved-theme="light"] body [data-spoiler="true"].is-revealed,
+html:root[saved-theme="light"] body [data-spoiler="true"]:hover {
+  background-color: var(--discord-spoiler-revealed-bg, rgba(0, 0, 0, 0.08));
 }
 
-.discord-syntax-spoiler.revealed *,
-.discord-syntax-spoiler.is-revealed *,
-.discord-syntax-spoiler:hover *,
-.discord-spoiler.revealed *,
-.discord-spoiler.is-revealed *,
-.discord-spoiler:hover *,
-[data-spoiler="true"].revealed *,
-[data-spoiler="true"].is-revealed *,
-[data-spoiler="true"]:hover * {
-  color: inherit !important;
-  -webkit-text-fill-color: initial !important;
+html body .discord-syntax-spoiler.revealed *,
+html body .discord-syntax-spoiler.is-revealed *,
+html body .discord-syntax-spoiler:hover *,
+html body .discord-spoiler.revealed *,
+html body .discord-spoiler.is-revealed *,
+html body .discord-spoiler:hover *,
+html body [data-spoiler="true"].revealed *,
+html body [data-spoiler="true"].is-revealed *,
+html body [data-spoiler="true"]:hover * {
+  color: inherit;
+  -webkit-text-fill-color: initial;
 }
 
 /* Discord Subtext */
-.discord-syntax-subtext, .discord-subtext, [data-subtext="true"] {
+html body .discord-syntax-subtext,
+html body .discord-subtext,
+html body [data-subtext="true"] {
   font-size: 0.82em;
   color: var(--gray, #72767d);
   display: inline;

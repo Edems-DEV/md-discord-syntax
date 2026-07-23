@@ -2,8 +2,6 @@ name: Publish npm Packages
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
 
 jobs:
   publish:
@@ -12,43 +10,50 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
-      - run: npm run build
-      - name: Publish @edems-dev/md-discord-syntax-core
+      - name: Run the canonical release gate
+        run: npm run release:check
+      - name: Preflight and publish unpublished versions
         run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            npm publish --access public --provenance --workspace=packages/core
-          else
+          workspaces=(packages/core packages/remark packages/quartz)
+
+          if [ -z "$NPM_TOKEN" ]; then
             echo "NPM_TOKEN not set; skipping publish (dry-run)."
-            npm publish --dry-run --workspace=packages/core
+            for workspace in "${workspaces[@]}"; do
+              npm publish --dry-run --workspace="$workspace"
+            done
+            exit 0
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish @edems-dev/remark-discord-syntax
-        run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            npm publish --access public --provenance --workspace=packages/remark
-          else
-            echo "NPM_TOKEN not set; skipping publish (dry-run)."
-            npm publish --dry-run --workspace=packages/remark
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish @edems-dev/md-discord-syntax-quartz
-        run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            npm publish --access public --provenance --workspace=packages/quartz
-          else
-            echo "NPM_TOKEN not set; skipping publish (dry-run)."
-            npm publish --dry-run --workspace=packages/quartz
-          fi
+
+          npm ping
+          unpublished=()
+
+          for workspace in "${workspaces[@]}"; do
+            name=$(node -p "require('./${workspace}/package.json').name")
+            version=$(node -p "require('./${workspace}/package.json').version")
+            set +e
+            lookup=$(npm view "$name@$version" version --json 2>&1)
+            status=$?
+            set -e
+
+            if [ "$status" -eq 0 ]; then
+              echo "$name@$version is already published; skipping."
+            elif grep -q "E404" <<<"$lookup"; then
+              unpublished+=("$workspace")
+            else
+              echo "$lookup"
+              exit "$status"
+            fi
+          done
+
+          for workspace in "${unpublished[@]}"; do
+            npm publish --access public --provenance --workspace="$workspace"
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

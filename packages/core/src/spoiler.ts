@@ -25,6 +25,7 @@ export function findCodeRanges(text: string): CodeRange[] {
   if (!text) return codeRanges;
 
   const lines = text.split("\n");
+  const fencedLines = new Array<boolean>(lines.length).fill(false);
   let currentOffset = 0;
   let inFence = false;
   let fenceChar = "";
@@ -35,23 +36,34 @@ export function findCodeRanges(text: string): CodeRange[] {
     const line = lines[i];
     const lineStart = currentOffset;
     const lineEnd = currentOffset + line.length;
+    let lineHasFence = inFence;
 
-    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
     if (fenceMatch) {
       const matchStr = fenceMatch[1];
       const char = matchStr[0];
       const len = matchStr.length;
+      const trailing = fenceMatch[2];
 
-      if (!inFence) {
+      if (!inFence && (char !== "`" || !trailing.includes("`"))) {
         inFence = true;
+        lineHasFence = true;
         fenceChar = char;
         fenceLen = len;
         fenceStart = lineStart;
-      } else if (char === fenceChar && len >= fenceLen) {
+      } else if (
+        inFence &&
+        char === fenceChar &&
+        len >= fenceLen &&
+        /^[ \t\r]*$/.test(trailing)
+      ) {
+        lineHasFence = true;
         inFence = false;
         codeRanges.push({ from: fenceStart, to: lineEnd, isFenced: true });
       }
     }
+
+    fencedLines[i] = lineHasFence;
 
     if (inFence && i === lines.length - 1) {
       codeRanges.push({ from: fenceStart, to: lineEnd, isFenced: true });
@@ -66,11 +78,7 @@ export function findCodeRanges(text: string): CodeRange[] {
     const lineStart = currentOffset;
     const lineEnd = currentOffset + line.length;
 
-    const isLineInFence = codeRanges.some(
-      (r) => lineStart >= r.from && lineEnd <= r.to,
-    );
-
-    if (!isLineInFence) {
+    if (!fencedLines[i]) {
       const backtickRegex = /(`+)/g;
       let match: RegExpExecArray | null;
       let openBacktick: { len: number; index: number } | null = null;
@@ -80,6 +88,7 @@ export function findCodeRanges(text: string): CodeRange[] {
         const index = lineStart + match.index;
 
         if (!openBacktick) {
+          if (isEscaped(text, index)) continue;
           openBacktick = { len, index };
         } else if (openBacktick.len === len) {
           codeRanges.push({
@@ -95,11 +104,63 @@ export function findCodeRanges(text: string): CodeRange[] {
     currentOffset = lineEnd + 1;
   }
 
+  codeRanges.sort((a, b) => a.from - b.from);
   return codeRanges;
 }
 
 export function isPosInCode(pos: number, codeRanges: CodeRange[]): boolean {
   return codeRanges.some((r) => pos >= r.from && pos < r.to);
+}
+
+function isPosInSortedRanges(
+  pos: number,
+  ranges: Array<{ from: number; to: number }>,
+): boolean {
+  let low = 0;
+  let high = ranges.length - 1;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    const range = ranges[mid];
+    if (pos < range.from) {
+      high = mid - 1;
+    } else if (pos >= range.to) {
+      low = mid + 1;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasRangeBetween(
+  from: number,
+  to: number,
+  ranges: Array<{ from: number; to: number; isFenced?: boolean }>,
+): boolean {
+  let low = 0;
+  let high = ranges.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (ranges[mid].from <= from) low = mid + 1;
+    else high = mid;
+  }
+  const range = ranges[low];
+  return Boolean(range && range.isFenced && range.to < to);
+}
+
+function hasPositionBetween(
+  from: number,
+  to: number,
+  positions: number[],
+): boolean {
+  let low = 0;
+  let high = positions.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (positions[mid] < from) low = mid + 1;
+    else high = mid;
+  }
+  return low < positions.length && positions[low] < to;
 }
 
 export function findSpoilerRanges(
@@ -110,7 +171,8 @@ export function findSpoilerRanges(
   if (!text || text.length < 4) return spoilers;
 
   const codeRanges = findCodeRanges(text);
-  const isCode = (pos: number) => isPosInCode(pos, codeRanges);
+  const fencedCodeRanges = codeRanges.filter((range) => range.isFenced);
+  const isCode = (pos: number) => isPosInSortedRanges(pos, codeRanges);
 
   const blockRanges: { from: number; to: number }[] = [];
 
@@ -160,8 +222,7 @@ export function findSpoilerRanges(
     }
   }
 
-  const isInBlock = (pos: number) =>
-    blockRanges.some((r) => pos >= r.from && pos < r.to);
+  const isInBlock = (pos: number) => isPosInSortedRanges(pos, blockRanges);
 
   // Pass 2: Inline spoilers
   let idx = text.indexOf("||");
@@ -178,6 +239,31 @@ export function findSpoilerRanges(
     idx = text.indexOf("||", idx + 2);
   }
 
+  const nextClosing = new Array<number>(candidates.length).fill(-1);
+  const paragraphBreaks: number[] = [];
+  for (let breakIndex = text.indexOf("\n\n"); breakIndex !== -1;) {
+    paragraphBreaks.push(breakIndex);
+    breakIndex = text.indexOf("\n\n", breakIndex + 2);
+  }
+  for (let breakIndex = text.indexOf("\r\n\r\n"); breakIndex !== -1;) {
+    paragraphBreaks.push(breakIndex);
+    breakIndex = text.indexOf("\r\n\r\n", breakIndex + 4);
+  }
+  paragraphBreaks.sort((a, b) => a - b);
+
+  let nearestClosing = -1;
+  for (
+    let candidateIndex = candidates.length - 1;
+    candidateIndex >= 0;
+    candidateIndex--
+  ) {
+    nextClosing[candidateIndex] = nearestClosing;
+    const prevChar = text[candidates[candidateIndex] - 1];
+    if (prevChar && !/\s/.test(prevChar)) {
+      nearestClosing = candidateIndex;
+    }
+  }
+
   let i = 0;
   while (i < candidates.length - 1) {
     const startIdx = candidates[i];
@@ -189,47 +275,32 @@ export function findSpoilerRanges(
       continue;
     }
 
-    let foundMatch = false;
-    for (let j = i + 1; j < candidates.length; j++) {
-      const endIdx = candidates[j];
-      const prevChar = text[endIdx - 1];
-
-      // Closing || must not be preceded by whitespace
-      if (/\s/.test(prevChar)) {
-        continue;
-      }
-
-      const content = text.slice(startIdx + 2, endIdx);
-
-      // Inline spoilers cannot contain double newlines
-      if (content.includes("\n\n") || content.includes("\r\n\r\n")) {
-        break;
-      }
-
-      const crossesFencedCode = codeRanges.some(
-        (r) => r.isFenced && startIdx < r.from && endIdx > r.to,
-      );
-      if (crossesFencedCode) {
-        continue;
-      }
-
-      if (content.length > 0) {
-        spoilers.push({
-          from: baseOffset + startIdx,
-          to: baseOffset + endIdx + 2,
-          contentFrom: baseOffset + startIdx + 2,
-          contentTo: baseOffset + endIdx,
-          isBlock: false,
-        });
-        i = j + 1;
-        foundMatch = true;
-        break;
-      }
+    let j = nextClosing[i];
+    while (j !== -1 && candidates[j] <= startIdx + 2) {
+      j = nextClosing[j];
     }
-
-    if (!foundMatch) {
+    if (j === -1) {
       i++;
+      continue;
     }
+
+    const endIdx = candidates[j];
+    if (
+      hasPositionBetween(startIdx + 2, endIdx, paragraphBreaks) ||
+      hasRangeBetween(startIdx, endIdx, fencedCodeRanges)
+    ) {
+      i++;
+      continue;
+    }
+
+    spoilers.push({
+      from: baseOffset + startIdx,
+      to: baseOffset + endIdx + 2,
+      contentFrom: baseOffset + startIdx + 2,
+      contentTo: baseOffset + endIdx,
+      isBlock: false,
+    });
+    i = j + 1;
   }
 
   spoilers.sort((a, b) => a.from - b.from);

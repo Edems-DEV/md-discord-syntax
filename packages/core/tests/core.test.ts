@@ -111,6 +111,43 @@ void test("Core Spoiler & Subtext Syntax Rules", async (t) => {
     );
   });
 
+  await t.test(
+    "does not close fenced code on a run with trailing content",
+    () => {
+      const text =
+        "```js\n```not a closing fence\n||still code||\n```\n||actual spoiler||";
+      const spoilers = findSpoilerRanges(text);
+      assert.strictEqual(spoilers.length, 1);
+      assert.strictEqual(
+        text.slice(spoilers[0].from, spoilers[0].to),
+        "||actual spoiler||",
+      );
+    },
+  );
+
+  await t.test("treats escaped backticks as literal text", () => {
+    const text = "\\`||visible spoiler||\\` and ||real spoiler||";
+    const spoilers = findSpoilerRanges(text);
+    assert.deepStrictEqual(
+      spoilers.map((range) => text.slice(range.from, range.to)),
+      ["||visible spoiler||", "||real spoiler||"],
+    );
+  });
+
+  await t.test("scales across many fenced and inline ranges", () => {
+    const sections = Array.from(
+      { length: 5_000 },
+      (_, index) => "```\ncode\n```\n||spoiler " + index + "||",
+    );
+    const text = sections.join("\n");
+    const startedAt = performance.now();
+    const spoilers = findSpoilerRanges(text);
+    const elapsed = performance.now() - startedAt;
+
+    assert.strictEqual(spoilers.length, sections.length);
+    assert.ok(elapsed < 2_500, `parser took ${elapsed.toFixed(0)}ms`);
+  });
+
   await t.test("subtext detection and prefix stripping", () => {
     assert.strictEqual(isSubtextLine("-# Subtext line"), true);
     assert.strictEqual(isSubtextLine("-#not subtext"), false);

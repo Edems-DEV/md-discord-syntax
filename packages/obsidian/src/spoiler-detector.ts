@@ -19,9 +19,9 @@ import {
 } from "@edems-dev/md-discord-syntax-core";
 
 function getEditorLivePreviewField(): StateField<boolean> | null {
+  const obs = obsidian as unknown as Record<string, unknown>;
   return (
-    (obsidian as { editorLivePreviewField?: StateField<boolean> })
-      .editorLivePreviewField ?? null
+    (obs["editorLivePreviewField"] as StateField<boolean> | undefined) ?? null
   );
 }
 
@@ -46,21 +46,43 @@ export const spoilerStateField = StateField.define<SpoilerStateEntry[]>({
     return [];
   },
   update(value, tr) {
-    let mapped = value.map((entry) => {
-      const from = tr.changes.mapPos(entry.from, 1);
-      const to = tr.changes.mapPos(entry.to, -1);
-      return { ...entry, from, to };
-    });
+    const spoilerEffects = tr.effects.filter((effect) =>
+      effect.is(setSpoilerStateEffect),
+    );
+    if (!tr.docChanged && spoilerEffects.length === 0) {
+      return value;
+    }
 
-    for (const effect of tr.effects) {
-      if (effect.is(setSpoilerStateEffect)) {
-        const { from, to, state } = effect.value;
-        mapped = mapped.filter(
-          (entry) => !(entry.from === from && entry.to === to),
-        );
-        if (state !== "hidden") {
-          mapped.push({ from, to, state });
-        }
+    let mapped = value;
+    if (tr.docChanged) {
+      mapped = value
+        .map((entry) => {
+          const from = tr.changes.mapPos(entry.from, 1);
+          const to = tr.changes.mapPos(entry.to, -1);
+          return { ...entry, from, to };
+        })
+        .filter((entry) => {
+          if (
+            entry.from < 0 ||
+            entry.from >= entry.to ||
+            entry.to > tr.newDoc.length
+          ) {
+            return false;
+          }
+          return (
+            tr.newDoc.sliceString(entry.from, entry.from + 2) === "||" &&
+            tr.newDoc.sliceString(entry.to - 2, entry.to) === "||"
+          );
+        });
+    }
+
+    for (const effect of spoilerEffects) {
+      const { from, to, state } = effect.value;
+      mapped = mapped.filter(
+        (entry) => !(entry.from === from && entry.to === to),
+      );
+      if (state !== "hidden") {
+        mapped.push({ from, to, state });
       }
     }
 
@@ -115,10 +137,14 @@ export function getSpoilerState(
 export function getSpoilerAtSelection(state: EditorState): SpoilerRange | null {
   const selection = state.selection;
   if (!selection.main.empty) return null;
-  const pos = selection.main.head;
+  return getSpoilerAtPosition(state, selection.main.head);
+}
 
-  const line = state.doc.lineAt(pos);
-  const spoilers = findSpoilerRanges(line.text, line.from);
+export function getSpoilerAtPosition(
+  state: EditorState,
+  pos: number,
+): SpoilerRange | null {
+  const spoilers = findSpoilerRanges(state.doc.toString());
   for (const s of spoilers) {
     if (pos >= s.from && pos <= s.to) {
       return s;
@@ -134,6 +160,78 @@ export interface SpoilerFragment {
   isEnd: boolean;
   classes: string;
   spoilerId?: string;
+}
+
+interface SyntaxSnapshot {
+  boundaries: number[];
+  excludedRanges: Array<{ from: number; to: number }>;
+}
+
+function isExcludedSyntaxNode(name: string): boolean {
+  const lowerName = name.toLowerCase();
+  return (
+    lowerName.includes("code") ||
+    lowerName.includes("comment") ||
+    lowerName.includes("math")
+  );
+}
+
+function collectSyntaxSnapshot(
+  state: EditorState,
+  from: number,
+  to: number,
+): SyntaxSnapshot {
+  const boundarySet = new Set<number>();
+  const excludedRanges: Array<{ from: number; to: number }> = [];
+
+  try {
+    syntaxTree(state).iterate({
+      from,
+      to,
+      enter(node: { name: string; from: number; to: number }) {
+        if (node.from > from && node.from < to) boundarySet.add(node.from);
+        if (node.to > from && node.to < to) boundarySet.add(node.to);
+        if (isExcludedSyntaxNode(node.name)) {
+          excludedRanges.push({ from: node.from, to: node.to });
+          return false;
+        }
+      },
+    });
+  } catch {
+    // Syntax information is optional while CodeMirror reparses a change.
+  }
+
+  excludedRanges.sort((a, b) => a.from - b.from || a.to - b.to);
+  const mergedExcluded: Array<{ from: number; to: number }> = [];
+  for (const range of excludedRanges) {
+    const previous = mergedExcluded[mergedExcluded.length - 1];
+    if (previous && range.from <= previous.to) {
+      previous.to = Math.max(previous.to, range.to);
+    } else {
+      mergedExcluded.push({ ...range });
+    }
+  }
+
+  return {
+    boundaries: Array.from(boundarySet).sort((a, b) => a - b),
+    excludedRanges: mergedExcluded,
+  };
+}
+
+function rangeOverlapsExcluded(
+  from: number,
+  to: number,
+  excludedRanges: Array<{ from: number; to: number }>,
+): boolean {
+  let low = 0;
+  let high = excludedRanges.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (excludedRanges[mid].to <= from) low = mid + 1;
+    else high = mid;
+  }
+  const range = excludedRanges[low];
+  return Boolean(range && range.from < to);
 }
 
 export function isRangeInCodeNode(
@@ -173,6 +271,23 @@ export function getSpoilerFragments(
   contentTo: number,
   spoilerIndex = 0,
 ): SpoilerFragment[] {
+  const snapshot = collectSyntaxSnapshot(state, contentFrom, contentTo);
+  return getSpoilerFragmentsFromSnapshot(
+    state,
+    contentFrom,
+    contentTo,
+    spoilerIndex,
+    snapshot,
+  );
+}
+
+function getSpoilerFragmentsFromSnapshot(
+  state: EditorState,
+  contentFrom: number,
+  contentTo: number,
+  spoilerIndex: number,
+  snapshot: SyntaxSnapshot,
+): SpoilerFragment[] {
   if (contentFrom >= contentTo) return [];
 
   const pointsSet = new Set<number>();
@@ -190,24 +305,10 @@ export function getSpoilerFragments(
     }
   }
 
-  try {
-    const tree = syntaxTree(state);
-    if (tree) {
-      tree.iterate({
-        from: contentFrom,
-        to: contentTo,
-        enter(node: { name: string; from: number; to: number }) {
-          if (node.from > contentFrom && node.from < contentTo) {
-            pointsSet.add(node.from);
-          }
-          if (node.to > contentFrom && node.to < contentTo) {
-            pointsSet.add(node.to);
-          }
-        },
-      });
+  for (const boundary of snapshot.boundaries) {
+    if (boundary > contentFrom && boundary < contentTo) {
+      pointsSet.add(boundary);
     }
-  } catch {
-    // Ignore tree syntax errors if unavailable
   }
 
   const sortedPoints = Array.from(pointsSet).sort((a, b) => a - b);
@@ -274,74 +375,76 @@ export function getSpoilerFragments(
   });
 }
 
-export function buildSpoilerDecorations(view: EditorView): DecorationSet {
+export function buildSpoilerDecorations(
+  view: EditorView,
+  allSpoilers: SpoilerRange[] = findSpoilerRanges(view.state.doc.toString()),
+): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const state = view.state;
+  const visibleSpoilers = allSpoilers.filter((spoiler) =>
+    view.visibleRanges.some(
+      ({ from, to }) => spoiler.to > from && spoiler.from < to,
+    ),
+  );
+  const syntaxSnapshot =
+    visibleSpoilers.length > 0
+      ? collectSyntaxSnapshot(
+          state,
+          visibleSpoilers[0].from,
+          visibleSpoilers[visibleSpoilers.length - 1].to,
+        )
+      : { boundaries: [], excludedRanges: [] };
 
   let spoilerIndex = 0;
-  for (const { from, to } of view.visibleRanges) {
-    const text = state.doc.sliceString(from, to);
-    const spoilers = findSpoilerRanges(text, from);
+  for (const spoiler of visibleSpoilers) {
+    spoilerIndex++;
+    const spoilerState = getSpoilerState(state, spoiler.from, spoiler.to);
+    if (spoilerState === "editing") {
+      continue;
+    }
 
-    for (const spoiler of spoilers) {
-      spoilerIndex++;
-      const spoilerState = getSpoilerState(state, spoiler.from, spoiler.to);
-      if (spoilerState === "editing") {
-        continue;
-      }
+    if (isSelectionInSpoiler(state, spoiler.from, spoiler.to)) {
+      continue;
+    }
 
-      if (isSelectionInSpoiler(state, spoiler.from, spoiler.to)) {
-        continue;
-      }
-
-      if (isRangeInCodeNode(state, spoiler.from, spoiler.to)) {
-        continue;
-      }
-
-      const isRevealed = spoilerState === "revealed";
-
-      builder.add(
+    if (
+      rangeOverlapsExcluded(
         spoiler.from,
-        spoiler.contentFrom,
-        Decoration.mark({
-          class:
-            "note-flow-spoiler-delimiter note-flow-spoiler-hidden discord-syntax-spoiler-delimiter",
-        }),
-      );
+        spoiler.to,
+        syntaxSnapshot.excludedRanges,
+      )
+    ) {
+      continue;
+    }
 
-      const fragments = getSpoilerFragments(
-        state,
-        spoiler.contentFrom,
-        spoiler.contentTo,
-        spoilerIndex,
-      );
+    const isRevealed = spoilerState === "revealed";
 
-      if (fragments.length > 0) {
-        for (const frag of fragments) {
-          let classes = frag.classes;
-          if (isRevealed) {
-            classes += " is-revealed";
-          }
-          builder.add(
-            frag.from,
-            frag.to,
-            Decoration.mark({
-              class: classes,
-              attributes: {
-                "data-spoiler-id": `spoiler-${spoiler.from}`,
-              },
-            }),
-          );
-        }
-      } else if (spoiler.contentFrom < spoiler.contentTo) {
-        let classes =
-          "note-flow-spoiler discord-syntax-spoiler note-flow-spoiler-single note-flow-spoiler-start note-flow-spoiler-end note-flow-spoiler-cap-left note-flow-spoiler-cap-right";
+    builder.add(
+      spoiler.from,
+      spoiler.contentFrom,
+      Decoration.mark({
+        class:
+          "note-flow-spoiler-delimiter note-flow-spoiler-hidden discord-syntax-spoiler-delimiter",
+      }),
+    );
+
+    const fragments = getSpoilerFragmentsFromSnapshot(
+      state,
+      spoiler.contentFrom,
+      spoiler.contentTo,
+      spoilerIndex,
+      syntaxSnapshot,
+    );
+
+    if (fragments.length > 0) {
+      for (const frag of fragments) {
+        let classes = frag.classes;
         if (isRevealed) {
           classes += " is-revealed";
         }
         builder.add(
-          spoiler.contentFrom,
-          spoiler.contentTo,
+          frag.from,
+          frag.to,
           Decoration.mark({
             class: classes,
             attributes: {
@@ -350,16 +453,32 @@ export function buildSpoilerDecorations(view: EditorView): DecorationSet {
           }),
         );
       }
-
+    } else if (spoiler.contentFrom < spoiler.contentTo) {
+      let classes =
+        "note-flow-spoiler discord-syntax-spoiler note-flow-spoiler-single note-flow-spoiler-start note-flow-spoiler-end note-flow-spoiler-cap-left note-flow-spoiler-cap-right";
+      if (isRevealed) {
+        classes += " is-revealed";
+      }
       builder.add(
+        spoiler.contentFrom,
         spoiler.contentTo,
-        spoiler.to,
         Decoration.mark({
-          class:
-            "note-flow-spoiler-delimiter note-flow-spoiler-hidden discord-syntax-spoiler-delimiter",
+          class: classes,
+          attributes: {
+            "data-spoiler-id": `spoiler-${spoiler.from}`,
+          },
         }),
       );
     }
+
+    builder.add(
+      spoiler.contentTo,
+      spoiler.to,
+      Decoration.mark({
+        class:
+          "note-flow-spoiler-delimiter note-flow-spoiler-hidden discord-syntax-spoiler-delimiter",
+      }),
+    );
   }
 
   return builder.finish();
@@ -368,9 +487,11 @@ export function buildSpoilerDecorations(view: EditorView): DecorationSet {
 export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
+    spoilers: SpoilerRange[];
 
     constructor(view: EditorView) {
-      this.decorations = buildSpoilerDecorations(view);
+      this.spoilers = findSpoilerRanges(view.state.doc.toString());
+      this.decorations = buildSpoilerDecorations(view, this.spoilers);
     }
 
     update(update: ViewUpdate) {
@@ -378,18 +499,22 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
       const newState = update.state.field(spoilerStateField, false);
       const stateChanged = oldState !== newState;
 
+      if (update.docChanged) {
+        this.spoilers = findSpoilerRanges(update.state.doc.toString());
+      }
+
       if (
         update.docChanged ||
         update.selectionSet ||
         update.viewportChanged ||
         stateChanged
       ) {
-        this.decorations = buildSpoilerDecorations(update.view);
+        this.decorations = buildSpoilerDecorations(update.view, this.spoilers);
       }
     }
   },
   {
-    decorations: (v) => v.decorations,
+    decorations: (v: { decorations: DecorationSet }) => v.decorations,
     eventHandlers: {
       mousedown(event, view) {
         const livePreviewField = getEditorLivePreviewField();
@@ -402,9 +527,7 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
 
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
         if (pos !== null) {
-          const line = view.state.doc.lineAt(pos);
-          const spoilers = findSpoilerRanges(line.text, line.from);
-          const spoiler = spoilers.find((s) => pos >= s.from && pos <= s.to);
+          const spoiler = getSpoilerAtPosition(view.state, pos);
 
           if (spoiler) {
             const currentState = getSpoilerState(
@@ -461,9 +584,9 @@ export const spoilerLivePreviewPlugin = ViewPlugin.fromClass(
             const fromStr = spoilerId.replace("spoiler-", "");
             const from = parseInt(fromStr, 10);
             if (!isNaN(from) && from >= 0 && from <= view.state.doc.length) {
-              const line = view.state.doc.lineAt(from);
-              const spoilers = findSpoilerRanges(line.text, line.from);
-              const spoiler = spoilers.find((s) => s.from === from);
+              const spoiler = findSpoilerRanges(view.state.doc.toString()).find(
+                (s) => s.from === from,
+              );
               if (spoiler) {
                 const currentState = getSpoilerState(
                   view.state,

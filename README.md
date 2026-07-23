@@ -11,9 +11,9 @@ Monorepo bringing Discord-style Markdown formatting (`||spoiler||` and `-# subte
 | Package                                  | npm Name                              | Description                                                                       |
 | ---------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
 | [`packages/core`](packages/core)         | `@edems-dev/md-discord-syntax-core`   | Platform-independent spoiler & subtext rules parser (zero dependencies).          |
-| [`packages/remark`](packages/remark)     | `@edems-dev/remark-discord-syntax`    | Remark plugin transforming `                                                      |     | spoiler |     | `and`-# subtext` for MDX. |
-| [`packages/obsidian`](packages/obsidian) | —                                     | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `discord-syntax`). |
-| [`packages/quartz`](packages/quartz)     | `@edems-dev/md-discord-syntax-quartz` | Quartz static site generator transformer plugin adapter for Discord syntax.        |
+| [`packages/remark`](packages/remark)     | `@edems-dev/remark-discord-syntax`    | Remark plugin transforming `\|\|spoiler\|\|` and `-# subtext` for MDX.            |
+| [`packages/obsidian`](packages/obsidian) | —                                     | Obsidian Community Plugin adapter (`Discord Syntax`, plugin ID `md-discord-syntax`). |
+| [`packages/quartz`](packages/quartz)     | `@edems-dev/md-discord-syntax-quartz` | Quartz static site generator transformer plugin adapter for Discord syntax.       |
 
 ---
 
@@ -186,6 +186,8 @@ To override default or plugin-selected variables without `!important`, theme aut
 ---
 
 ## Monorepo Development
+
+Use Node.js 22.13 or newer within the Node 22 release line and npm 10.9–11.x.
 
 ```bash
 # Install dependencies
