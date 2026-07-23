@@ -18,7 +18,7 @@
     "docs": "npx quartz build --serve -d docs",
     "check": "tsc --noEmit && npx prettier . --check",
     "format": "npx prettier . --write",
-    "test": "tsx --test quartz/util/*.test.ts quartz/components/*.test.ts quartz/components/scripts/*.test.ts",
+    "test": "tsx --test quartz/util/fileTrie.test.ts quartz/util/path.test.ts quartz/util/slugCollisions.test.ts quartz/components/renderPage.test.ts quartz/components/scripts/popover.test.ts quartz/components/scripts/search.test.ts",
     "profile": "0x -D prof ./quartz/bootstrap-cli.mjs build --concurrency=1",
     "install-plugins": "npx tsx ./quartz/plugins/loader/install-plugins.ts",
     "prebuild": "npm run install-plugins"
