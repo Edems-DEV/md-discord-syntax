@@ -18,22 +18,15 @@ test("bumpVersion rejects unsupported or invalid input", () => {
   assert.throws(() => bumpVersion("1.2.3", "banana"), /Unsupported/);
 });
 
-test("release commits include generated examples and lock metadata", () => {
+test("release commits include lock metadata but exclude generated examples", () => {
   assert.ok(RELEASE_FILES.includes("package-lock.json"));
-  assert.ok(
-    RELEASE_FILES.includes(
-      "examples/content/.obsidian/plugins/md-discord-syntax/main.js",
+  assert.equal(
+    RELEASE_FILES.some((file) =>
+      file.startsWith(
+        "examples/content/.obsidian/plugins/md-discord-syntax/",
+      ),
     ),
-  );
-  assert.ok(
-    RELEASE_FILES.includes(
-      "examples/content/.obsidian/plugins/md-discord-syntax/manifest.json",
-    ),
-  );
-  assert.ok(
-    RELEASE_FILES.includes(
-      "examples/content/.obsidian/plugins/md-discord-syntax/styles.css",
-    ),
+    false,
   );
 });
 

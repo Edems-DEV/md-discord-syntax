@@ -77,12 +77,13 @@ This is a ||spoiler|| block.
 
 ### 3. Obsidian Plugin (`packages/obsidian`)
 
-1. Build the release assets in `packages/obsidian`:
+1. Build the release assets and sync them into the local example vault:
    ```bash
-   npm run build --workspace=packages/obsidian
+   npm run build:obsidian
    ```
-2. Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/discord-syntax/`.
-3. Enable **Discord Syntax** in Obsidian Settings.
+2. Open `examples/content` as an Obsidian vault and enable **Discord Syntax** in Obsidian Settings.
+
+The generated example-vault plugin is intentionally ignored by Git. To test in another vault, copy `main.js`, `manifest.json`, and `styles.css` from `packages/obsidian` into `<vault>/.obsidian/plugins/md-discord-syntax/`.
 
 ### 4. Quartz Static Site Generator (`@edems-dev/md-discord-syntax-quartz`)
 

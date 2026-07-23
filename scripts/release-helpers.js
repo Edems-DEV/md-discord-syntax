@@ -10,9 +10,6 @@ const RELEASE_FILES = [
   "versions.json",
   "packages/obsidian/manifest.json",
   "packages/obsidian/versions.json",
-  "examples/content/.obsidian/plugins/md-discord-syntax/main.js",
-  "examples/content/.obsidian/plugins/md-discord-syntax/manifest.json",
-  "examples/content/.obsidian/plugins/md-discord-syntax/styles.css",
 ];
 
 function resolveInvocation(

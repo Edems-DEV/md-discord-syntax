@@ -9,7 +9,7 @@ This directory contains test setups and demo environments for testing `md-discor
 ```
 examples/
 ├── content/              # Shared Markdown content with rendering edge cases
-│   ├── .obsidian/        # Minimal Obsidian Vault with pre-installed Discord Syntax plugin
+│   ├── .obsidian/        # Minimal Obsidian vault; the plugin is generated locally
 │   └── test.md
 ├── nextjs/               # Minimal Next.js app testing @edems-dev/remark-discord-syntax
 └── quartz/               # Reserved for future Quartz static site generator setup
@@ -32,12 +32,13 @@ examples/
 
 1. Build the Obsidian plugin from the root repository:
    ```bash
-   npm run build
-   node scripts/sync-examples.js
+   npm run build:obsidian
    ```
 2. Open **Obsidian**.
 3. Choose **"Open folder as vault"** and select `examples/content`.
 4. Open `test.md` in both **Live Preview** and **Reading View** to verify spoiler masking, hover/reveal interactions, and subtext formatting.
+
+The generated plugin directory under `.obsidian/plugins` is ignored by Git and recreated by the build command.
 
 ---
 

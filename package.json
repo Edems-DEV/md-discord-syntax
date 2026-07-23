@@ -10,6 +10,7 @@
   "scripts": {
     "prebuild": "npm run build -w @edems-dev/md-discord-syntax-core && npm run build -w @edems-dev/remark-discord-syntax",
     "build": "npm run build --workspaces --if-present",
+    "build:obsidian": "npm run build -w md-discord-syntax && node scripts/sync-examples.js",
     "postbuild": "node scripts/sync-examples.js",
     "sync:examples": "node scripts/sync-examples.js",
     "start:quartz": "npm run build && npm run start -w @jackyzha0/quartz",
