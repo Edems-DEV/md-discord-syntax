@@ -3,6 +3,7 @@ dist/
 main.js
 styles.css
 !packages/obsidian/src/styles.css
+!packages/quartz/styles.css
 *.tsbuildinfo
 .DS_Store
 .next/
