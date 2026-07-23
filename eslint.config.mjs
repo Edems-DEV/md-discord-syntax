@@ -8,6 +8,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",
+      "examples/quartz/**",
       "packages/obsidian/main.js",
       "packages/obsidian/styles.css",
       "**/*.mjs",
