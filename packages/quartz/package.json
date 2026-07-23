@@ -22,7 +22,7 @@
     "build": "tsup src/index.ts --format cjs,esm --dts --clean && node scripts/copy-styles.js",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "keywords": [
     "quartz",
