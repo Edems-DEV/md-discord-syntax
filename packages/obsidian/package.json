@@ -1,6 +1,6 @@
 {
   "name": "md-discord-syntax",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "Discord Syntax Obsidian plugin adapter",
   "private": true,
   "main": "main.js",
