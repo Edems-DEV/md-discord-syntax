@@ -40,6 +40,17 @@ try {
 
 const tagExists = existingTags.includes(currentVersion);
 
+// Run full pre-release validation suite BEFORE modifying files or committing
+try {
+  console.log(
+    "\n🔍 Running release validation checks (build, test, validate)...",
+  );
+  execSync("npm run release:check", { stdio: "inherit", cwd: rootDir });
+} catch (err) {
+  console.error("\n❌ Release check failed! Fix errors before publishing.");
+  process.exit(1);
+}
+
 if (bumpType || tagExists) {
   const typeToUse = bumpType || "patch";
   const semverParts = currentVersion.split(".").map((n) => parseInt(n, 10));
@@ -73,6 +84,25 @@ if (bumpType || tagExists) {
   console.log("🔄 Syncing version to manifest.json and versions.json...");
   execSync("npm run sync:versions", { stdio: "inherit", cwd: rootDir });
 
+  // Re-run validation checks on updated files before committing
+  try {
+    console.log("🔍 Validating updated version files...");
+    execSync("npm run release:check", { stdio: "inherit", cwd: rootDir });
+  } catch (err) {
+    console.error(
+      "\n❌ Release check failed after version bump! Reverting changes.",
+    );
+    try {
+      execSync(
+        "git checkout -- packages/obsidian/package.json manifest.json versions.json packages/obsidian/manifest.json packages/obsidian/versions.json",
+        { cwd: rootDir },
+      );
+    } catch (e) {
+      // Ignore
+    }
+    process.exit(1);
+  }
+
   console.log("📝 Committing version bump...");
   try {
     execSync(
@@ -89,19 +119,6 @@ if (bumpType || tagExists) {
   }
 
   currentVersion = nextVersion;
-}
-
-console.log(`📦 Target Obsidian Plugin Version: ${currentVersion}`);
-
-// Run full pre-release validation suite
-try {
-  console.log(
-    "\n🔍 Running release validation checks (build, test, validate)...",
-  );
-  execSync("npm run release:check", { stdio: "inherit", cwd: rootDir });
-} catch (err) {
-  console.error("\n❌ Release check failed! Fix errors before publishing.");
-  process.exit(1);
 }
 
 const tag = currentVersion;

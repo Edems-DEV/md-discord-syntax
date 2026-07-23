@@ -21,6 +21,17 @@ if (!fs.existsSync(obsidianPkgPath)) {
   process.exit(1);
 }
 
+// Run full pre-release validation suite BEFORE modifying files or committing
+try {
+  console.log(
+    "\n🔍 Running pre-bump validation checks (build, test, validate)...",
+  );
+  execSync("npm run release:check", { stdio: "inherit", cwd: rootDir });
+} catch (err) {
+  console.error("\n❌ Validation failed! Fix errors before bumping version.");
+  process.exit(1);
+}
+
 const obsidianPkg = JSON.parse(fs.readFileSync(obsidianPkgPath, "utf8"));
 const currentVersion = obsidianPkg.version || "1.0.0";
 
