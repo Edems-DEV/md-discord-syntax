@@ -24,6 +24,7 @@ import {
 } from "./gitLoader"
 import { loadComponentsFromPackage } from "./componentLoader"
 import { loadFramesFromPackage } from "./frameLoader"
+import { dynamicImport } from "./dynamicImport"
 import { componentRegistry } from "../../components/registry"
 import { getCondition } from "./conditions"
 
@@ -190,8 +191,8 @@ async function resolvePluginManifest(source: PluginSource): Promise<PluginManife
   try {
     const gitSpec = parsePluginSource(source)
     const entryPoint = getPluginEntryPoint(gitSpec.name)
-    const module = await import(toFileUrl(entryPoint))
-    return module.manifest ?? null
+    const module = await dynamicImport<Record<string, unknown>>(toFileUrl(entryPoint))
+    return (module.manifest as PluginManifest) ?? null
   } catch {
     return null
   }
@@ -345,13 +346,15 @@ export async function loadQuartzConfig(
         // in their index module to register functionality.
         const entryPoint = getPluginEntryPoint(gitSpec.name)
         try {
-          const module = await import(toFileUrl(entryPoint))
+          const module = await dynamicImport<Record<string, unknown>>(toFileUrl(entryPoint))
           // If the module exports an init() function, call it with merged options
           // so component-only plugins can receive user configuration from YAML.
           if (typeof module.init === "function") {
             const initOverrides = componentRegistry.getOptionOverrides(gitSpec.name)
             const options = { ...manifest?.defaultOptions, ...entry.options, ...initOverrides }
-            await module.init(Object.keys(options).length > 0 ? options : undefined)
+            await (module.init as (opts?: unknown) => Promise<void>)(
+              Object.keys(options).length > 0 ? options : undefined,
+            )
           }
         } catch (e) {
           // Side-effect import failed — continue with manifest-based loading
@@ -365,7 +368,7 @@ export async function loadQuartzConfig(
       } else {
         const entryPoint = getPluginEntryPoint(gitSpec.name)
         try {
-          const module = await import(toFileUrl(entryPoint))
+          const module = await dynamicImport<Record<string, unknown>>(toFileUrl(entryPoint))
           const detected = detectCategoryFromModule(module)
           if (detected) {
             categoryMap[detected].push({ entry, manifest })
@@ -425,7 +428,7 @@ export async function loadQuartzConfig(
       try {
         const gitSpec = parsePluginSource(entry.source)
         const entryPoint = getPluginEntryPoint(gitSpec.name)
-        const module = await import(toFileUrl(entryPoint))
+        const module = await dynamicImport<Record<string, unknown>>(toFileUrl(entryPoint))
         if (manifest?.components && Object.keys(manifest.components).length > 0) {
           await loadComponentsFromPackage(gitSpec.name, manifest)
         }

@@ -22,6 +22,7 @@ import {
   isLocalSource,
   validatePluginExternals,
 } from "./gitLoader"
+import { dynamicImport } from "./dynamicImport"
 
 const MINIMUM_QUARTZ_VERSION = "4.5.0"
 
@@ -52,9 +53,9 @@ async function tryImportPlugin(packageName: string): Promise<{
   manifest: PluginManifest | null
 }> {
   try {
-    const module = await import(packageName)
+    const module = await dynamicImport<Record<string, unknown>>(packageName)
 
-    const manifest: PluginManifest | null = module.manifest ?? null
+    const manifest: PluginManifest | null = (module.manifest as PluginManifest) ?? null
 
     return { module, manifest }
   } catch (error) {
@@ -99,11 +100,7 @@ function extractPluginFactory(
   module: unknown,
   type: "transformer" | "filter" | "emitter" | "pageType",
 ):
-  | QuartzTransformerPlugin
-  | QuartzFilterPlugin
-  | QuartzEmitterPlugin
-  | QuartzPageTypePlugin
-  | null {
+  QuartzTransformerPlugin | QuartzFilterPlugin | QuartzEmitterPlugin | QuartzPageTypePlugin | null {
   if (!module || typeof module !== "object") return null
 
   const mod = module as Record<string, unknown>
@@ -112,10 +109,7 @@ function extractPluginFactory(
 
   if (typeof factory === "function") {
     return factory as
-      | QuartzTransformerPlugin
-      | QuartzFilterPlugin
-      | QuartzEmitterPlugin
-      | QuartzPageTypePlugin
+      QuartzTransformerPlugin | QuartzFilterPlugin | QuartzEmitterPlugin | QuartzPageTypePlugin
   }
 
   return null
@@ -189,8 +183,8 @@ async function resolveSinglePlugin(
       const entryPoint = getPluginEntryPoint(gitSpec.name)
 
       // Import the plugin
-      const module = await import(toFileUrl(entryPoint))
-      const importedManifest: PluginManifest | null = module.manifest ?? null
+      const module = await dynamicImport<Record<string, unknown>>(toFileUrl(entryPoint))
+      const importedManifest: PluginManifest | null = (module.manifest as PluginManifest) ?? null
 
       validatePluginExternals(gitSpec.name, entryPoint, { verbose: options.verbose })
 

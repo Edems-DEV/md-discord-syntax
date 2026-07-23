@@ -38,7 +38,7 @@ __export(main_exports, {
   default: () => DiscordSyntaxPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian3 = require("obsidian");
+var import_obsidian2 = require("obsidian");
 var import_view3 = require("@codemirror/view");
 
 // ../core/dist/spoiler.js
@@ -426,9 +426,9 @@ function processSpoilers(element, doc = element.ownerDocument) {
 var import_view = require("@codemirror/view");
 var import_state = require("@codemirror/state");
 var import_language = require("@codemirror/language");
-var import_obsidian = __toESM(require("obsidian"));
+var obsidian = __toESM(require("obsidian"));
 function getEditorLivePreviewField() {
-  return import_obsidian.default.editorLivePreviewField ?? null;
+  return obsidian.editorLivePreviewField ?? null;
 }
 var setSpoilerStateEffect = import_state.StateEffect.define();
 var spoilerStateField = import_state.StateField.define({
@@ -1402,9 +1402,9 @@ function getEnabledEditorExtensions(settings) {
 }
 
 // src/settings-tab.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian = require("obsidian");
 function addSettingWithCssVar(container, name, descText, cssVar) {
-  const setting = new import_obsidian2.Setting(container).setName(name);
+  const setting = new import_obsidian.Setting(container).setName(name);
   setting.setDesc(descText + " CSS variable: ");
   const codeEl = setting.descEl.createEl("code", {
     text: cssVar,
@@ -1413,7 +1413,7 @@ function addSettingWithCssVar(container, name, descText, cssVar) {
   codeEl.setAttr("title", `CSS variable: ${cssVar}`);
   return setting;
 }
-var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
+var DiscordSyntaxSettingTab = class extends import_obsidian.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.copyTimeoutId = null;
@@ -1433,12 +1433,12 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
       window.clearTimeout(this.copyTimeoutId);
       this.copyTimeoutId = null;
     }
-    containerEl.createEl("h2", { text: "Discord Syntax Settings" });
+    new import_obsidian.Setting(containerEl).setName("Discord Syntax Settings").setHeading();
     const updateStyles = () => {
       const settingsBody = containerEl.ownerDocument?.body;
       this.plugin.applyStyles(settingsBody);
     };
-    new import_obsidian2.Setting(containerEl).setName("Enable Spoilers syntax").setDesc("Enable ||spoiler|| syntax in Reading View and Live Preview.").addToggle(
+    new import_obsidian.Setting(containerEl).setName("Enable Spoilers syntax").setDesc("Enable ||spoiler|| syntax in Reading View and Live Preview.").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.enableSpoilers).onChange((value) => {
         if (this.plugin.settings.enableSpoilers === value) return;
         this.plugin.settings.enableSpoilers = value;
@@ -1447,7 +1447,7 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
         void this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Enable Subtext syntax").setDesc("Enable -# subtext syntax in Reading View and Live Preview.").addToggle(
+    new import_obsidian.Setting(containerEl).setName("Enable Subtext syntax").setDesc("Enable -# subtext syntax in Reading View and Live Preview.").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.enableSubtext).onChange((value) => {
         if (this.plugin.settings.enableSubtext === value) return;
         this.plugin.settings.enableSubtext = value;
@@ -1690,15 +1690,13 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
     const subtextPreviewBox = subtextContent.createEl("div", {
       cls: "markdown-rendered markdown-preview-view discord-syntax-preview-box"
     });
-    const subtextP1 = subtextPreviewBox.createEl("p", {
-      cls: "discord-syntax-preview-p",
+    subtextPreviewBox.createEl("p", {
+      cls: "discord-syntax-preview-p discord-syntax-preview-p-margin",
       text: "This is a regular body text line in note."
     });
-    subtextP1.style.margin = "0 0 6px 0";
     const subtextP2 = subtextPreviewBox.createEl("p", {
       cls: "discord-syntax-preview-p"
     });
-    subtextP2.style.margin = "0";
     subtextP2.createSpan({
       cls: "discord-subtext",
       text: "-# This is a secondary subtext line preview."
@@ -1796,7 +1794,7 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
     const advancedContent = advancedDetails.createEl("div", {
       cls: "discord-syntax-section-content"
     });
-    new import_obsidian2.Setting(advancedContent).setName("Reset appearance settings").setDesc(
+    new import_obsidian.Setting(advancedContent).setName("Reset appearance settings").setDesc(
       "Reset colors, size, opacity, radius, and padding to default values. Syntax toggles are preserved."
     ).addButton(
       (btn) => btn.setButtonText("Reset to defaults").setWarning().onClick(() => {
@@ -1811,10 +1809,7 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
     const cssGuideEl = advancedContent.createEl("div", {
       cls: "discord-syntax-css-guide"
     });
-    cssGuideEl.style.marginTop = "16px";
-    cssGuideEl.style.paddingTop = "12px";
-    cssGuideEl.style.borderTop = "1px solid var(--background-modifier-border)";
-    cssGuideEl.createEl("h4", { text: "Custom CSS & Theme Customization" });
+    new import_obsidian.Setting(cssGuideEl).setName("Custom CSS & Theme Customization").setHeading();
     cssGuideEl.createEl("p", {
       text: "The plugin sets inline CSS variables on document.body when custom settings are saved. To override these variables without !important, target element selectors directly (such as .discord-syntax-spoiler, .note-flow-spoiler, .discord-subtext, or .discord-subtext-marker)."
     });
@@ -1839,12 +1834,8 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
     const codePre = cssGuideEl.createEl("pre", {
       cls: "discord-syntax-code-block"
     });
-    codePre.style.padding = "10px";
-    codePre.style.borderRadius = "4px";
-    codePre.style.backgroundColor = "var(--background-primary-alt)";
-    codePre.style.overflowX = "auto";
     codePre.createEl("code", { text: exampleSnippet });
-    new import_obsidian2.Setting(cssGuideEl).setName("Copy example CSS snippet").setDesc(
+    new import_obsidian.Setting(cssGuideEl).setName("Copy example CSS snippet").setDesc(
       "Copy standard CSS snippet for theme customization to clipboard."
     ).addButton(
       (btn) => btn.setButtonText("Copy snippet").onClick(() => {
@@ -1862,7 +1853,7 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
               }
             }, 2e3);
           } catch {
-            new import_obsidian2.Notice("Failed to copy CSS snippet to clipboard.");
+            new import_obsidian.Notice("Failed to copy CSS snippet to clipboard.");
           }
         };
         void doCopy();
@@ -1873,13 +1864,13 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
       if (!spoilersEnabled) {
         spoilerDetails.removeAttribute("open");
         spoilerDetails.addClass("is-disabled");
-        spoilerMsg.style.display = "block";
+        spoilerMsg.removeClass("u-hidden");
         spoilerSettingsList.forEach((s) => {
           s.setDisabled(true);
         });
       } else {
         spoilerDetails.removeClass("is-disabled");
-        spoilerMsg.style.display = "none";
+        spoilerMsg.addClass("u-hidden");
         spoilerSettingsList.forEach((s) => {
           s.setDisabled(false);
         });
@@ -1888,13 +1879,13 @@ var DiscordSyntaxSettingTab = class extends import_obsidian2.PluginSettingTab {
       if (!subtextEnabled) {
         subtextDetails.removeAttribute("open");
         subtextDetails.addClass("is-disabled");
-        subtextMsg.style.display = "block";
+        subtextMsg.removeClass("u-hidden");
         subtextSettingsList.forEach((s) => {
           s.setDisabled(true);
         });
       } else {
         subtextDetails.removeClass("is-disabled");
-        subtextMsg.style.display = "none";
+        subtextMsg.addClass("u-hidden");
         subtextSettingsList.forEach((s) => {
           s.setDisabled(false);
         });
@@ -1950,7 +1941,7 @@ function removeStyleVariables(targetEl) {
 }
 
 // src/main.ts
-var DiscordSyntaxPlugin = class extends import_obsidian3.Plugin {
+var DiscordSyntaxPlugin = class extends import_obsidian2.Plugin {
   constructor() {
     super(...arguments);
     this.editorExtensions = [];
@@ -1996,10 +1987,10 @@ var DiscordSyntaxPlugin = class extends import_obsidian3.Plugin {
       name: "Toggle all spoilers in active note",
       callback: () => {
         if (!this.settings.enableSpoilers) {
-          new import_obsidian3.Notice("Spoiler syntax is disabled in settings");
+          new import_obsidian2.Notice("Spoiler syntax is disabled in settings");
           return;
         }
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
         if (!activeView) return;
         const mode = activeView.getMode();
         if (mode === "preview") {

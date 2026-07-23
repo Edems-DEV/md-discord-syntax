@@ -12,7 +12,7 @@ import {
   StateEffect,
 } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import obsidian from "obsidian";
+import * as obsidian from "obsidian";
 import {
   findSpoilerRanges,
   SpoilerRange,

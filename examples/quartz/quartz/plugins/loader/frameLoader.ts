@@ -2,6 +2,7 @@ import { frameRegistry } from "../../components/frames/registry"
 import { PluginManifest } from "./types"
 import { PageFrame } from "../../components/frames/types"
 import { getPluginSubpathEntry, toFileUrl } from "./gitLoader"
+import { dynamicImport } from "./dynamicImport"
 
 export async function loadFramesFromPackage(
   pluginName: string,
@@ -14,9 +15,9 @@ export async function loadFramesFromPackage(
 
     let framesModule: Record<string, unknown>
     if (framesPath) {
-      framesModule = await import(toFileUrl(framesPath))
+      framesModule = await dynamicImport<Record<string, unknown>>(toFileUrl(framesPath))
     } else {
-      framesModule = await import(`${pluginName}/frames`)
+      framesModule = await dynamicImport<Record<string, unknown>>(`${pluginName}/frames`)
     }
 
     for (const [exportName, _frameMeta] of Object.entries(manifest.frames)) {

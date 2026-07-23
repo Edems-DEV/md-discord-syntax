@@ -91,9 +91,9 @@ main {
 }
 
 main .pagination-loader-container {
-  background-image: url("https://github.com/images/modules/pulls/progressive-disclosure-line.svg");
+  /* background-image omitted for local theme compliance */
 }
 
 main .gsc-loading-image {
-  background-image: url("https://github.githubassets.com/images/mona-loading-default.gif");
+  /* background-image omitted for local theme compliance */
 }

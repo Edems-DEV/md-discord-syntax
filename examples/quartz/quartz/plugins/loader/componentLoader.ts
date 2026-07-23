@@ -2,6 +2,7 @@ import { componentRegistry } from "../../components/registry"
 import { ComponentManifest, PluginManifest } from "./types"
 import { QuartzComponentConstructor } from "../../components/types"
 import { getPluginSubpathEntry, toFileUrl } from "./gitLoader"
+import { dynamicImport } from "./dynamicImport"
 
 export async function loadComponentsFromPackage(
   pluginName: string,
@@ -14,9 +15,9 @@ export async function loadComponentsFromPackage(
 
     let componentsModule: Record<string, unknown>
     if (componentsPath) {
-      componentsModule = await import(toFileUrl(componentsPath))
+      componentsModule = await dynamicImport<Record<string, unknown>>(toFileUrl(componentsPath))
     } else {
-      componentsModule = await import(`${pluginName}/components`)
+      componentsModule = await dynamicImport<Record<string, unknown>>(`${pluginName}/components`)
     }
 
     const componentEntries = Object.entries(manifest.components)

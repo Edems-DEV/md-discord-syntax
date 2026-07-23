@@ -55,7 +55,7 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
       this.copyTimeoutId = null;
     }
 
-    containerEl.createEl("h2", { text: "Discord Syntax Settings" });
+    new Setting(containerEl).setName("Discord Syntax Settings").setHeading();
 
     // Helper for applying current styles to DOM synchronously
     const updateStyles = () => {
@@ -386,16 +386,14 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
     const subtextPreviewBox = subtextContent.createEl("div", {
       cls: "markdown-rendered markdown-preview-view discord-syntax-preview-box",
     });
-    const subtextP1 = subtextPreviewBox.createEl("p", {
-      cls: "discord-syntax-preview-p",
+    subtextPreviewBox.createEl("p", {
+      cls: "discord-syntax-preview-p discord-syntax-preview-p-margin",
       text: "This is a regular body text line in note.",
     });
-    subtextP1.style.margin = "0 0 6px 0";
 
     const subtextP2 = subtextPreviewBox.createEl("p", {
       cls: "discord-syntax-preview-p",
     });
-    subtextP2.style.margin = "0";
     subtextP2.createSpan({
       cls: "discord-subtext",
       text: "-# This is a secondary subtext line preview.",
@@ -549,11 +547,10 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
     const cssGuideEl = advancedContent.createEl("div", {
       cls: "discord-syntax-css-guide",
     });
-    cssGuideEl.style.marginTop = "16px";
-    cssGuideEl.style.paddingTop = "12px";
-    cssGuideEl.style.borderTop = "1px solid var(--background-modifier-border)";
 
-    cssGuideEl.createEl("h4", { text: "Custom CSS & Theme Customization" });
+    new Setting(cssGuideEl)
+      .setName("Custom CSS & Theme Customization")
+      .setHeading();
     cssGuideEl.createEl("p", {
       text: "The plugin sets inline CSS variables on document.body when custom settings are saved. To override these variables without !important, target element selectors directly (such as .discord-syntax-spoiler, .note-flow-spoiler, .discord-subtext, or .discord-subtext-marker).",
     });
@@ -580,10 +577,6 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
     const codePre = cssGuideEl.createEl("pre", {
       cls: "discord-syntax-code-block",
     });
-    codePre.style.padding = "10px";
-    codePre.style.borderRadius = "4px";
-    codePre.style.backgroundColor = "var(--background-primary-alt)";
-    codePre.style.overflowX = "auto";
     codePre.createEl("code", { text: exampleSnippet });
 
     new Setting(cssGuideEl)
@@ -620,13 +613,13 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
       if (!spoilersEnabled) {
         spoilerDetails.removeAttribute("open");
         spoilerDetails.addClass("is-disabled");
-        spoilerMsg.style.display = "block";
+        spoilerMsg.removeClass("u-hidden");
         spoilerSettingsList.forEach((s) => {
           s.setDisabled(true);
         });
       } else {
         spoilerDetails.removeClass("is-disabled");
-        spoilerMsg.style.display = "none";
+        spoilerMsg.addClass("u-hidden");
         spoilerSettingsList.forEach((s) => {
           s.setDisabled(false);
         });
@@ -636,13 +629,13 @@ export class DiscordSyntaxSettingTab extends PluginSettingTab {
       if (!subtextEnabled) {
         subtextDetails.removeAttribute("open");
         subtextDetails.addClass("is-disabled");
-        subtextMsg.style.display = "block";
+        subtextMsg.removeClass("u-hidden");
         subtextSettingsList.forEach((s) => {
           s.setDisabled(true);
         });
       } else {
         subtextDetails.removeClass("is-disabled");
-        subtextMsg.style.display = "none";
+        subtextMsg.addClass("u-hidden");
         subtextSettingsList.forEach((s) => {
           s.setDisabled(false);
         });

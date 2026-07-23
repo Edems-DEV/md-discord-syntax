@@ -249,3 +249,23 @@
   margin: 0;
   line-height: 1.5;
 }
+.discord-syntax-preview-p-margin {
+  margin-bottom: 6px;
+}
+
+.discord-syntax-css-guide {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.discord-syntax-code-block {
+  padding: 10px;
+  border-radius: 4px;
+  background-color: var(--background-primary-alt);
+  overflow-x: auto;
+}
+
+.u-hidden {
+  display: none;
+}
